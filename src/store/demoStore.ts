@@ -204,6 +204,69 @@ function initialData(): DemoData {
 }
 
 // ------------------------------------------------------------------------------------------------
+// "What changed" views of the four walkthrough scenarios. They are built from constants, so a scenario
+// that already ran (scenarios are persisted) can open its view again - the guided tour relies on it.
+// ------------------------------------------------------------------------------------------------
+const SCENARIO_CHANGES: Record<ScenarioId, () => WhatChanged> = {
+  s1: () => {
+    const r2 = underwrite(UW_INPUTS.v2);
+    const r3 = underwrite(UW_INPUTS.v3);
+    return {
+      title: 'Revised underwriting model',
+      trigger: 'Sponsor Pro Forma v3 superseded v2. Four findings depended on v2 inputs; they were invalidated and recomputed with the same deterministic engine.',
+      rows: [
+        { label: 'Sponsor pro forma', before: 'v2 (current)', after: 'v3 (current) · v2 kept as superseded', kind: 'superseded' },
+        { label: 'F-03 · DSCR vs lender 1.20x', before: `${r2.dscr.toFixed(2)}x · blocking`, after: `${r3.dscr.toFixed(2)}x · resolved`, kind: 'resolved' },
+        { label: 'F-07 · Regulatory term (HCR-T-16)', before: '30 years · advisory', after: '50 years · resolved', kind: 'resolved' },
+        { label: 'F-01 · Sources - uses', before: usd(r2.balance), after: `${usd(r3.balance)} · still blocking`, kind: 'recomputed' },
+        { label: 'F-01 · Gap-method credit (HCR-C-08)', before: usd(r2.gapCredit), after: usd(r3.gapCredit), kind: 'recomputed' },
+        { label: 'F-02 · Developer fee % (HCR-C-02)', before: `${r2.devFeePctOfBase}% of ${usd(r2.devFeeBaseCap / 0.1)}`, after: `${r3.devFeePctOfBase}% of ${usd(r3.devFeeBaseCap / 0.1)} · still blocking`, kind: 'recomputed' },
+        { label: 'Total development cost', before: usd(r2.tdc), after: usd(r3.tdc), kind: 'recomputed' },
+      ],
+      notes: ['Operating expenses fell from $9,885 to $9,560 per unit (485-x exemption, D1-08); soft costs rose by $150,000.', 'Superseded findings stay in the audit trail with their original values.'],
+      link: { label: 'Open underwriting', to: '/deals/harlow/underwriting' },
+    };
+  },
+  s2: () => ({
+    title: 'Lender email conflicts with a cited source',
+    trigger: 'An email from Hudson Mutual says a 12-month Phase I is acceptable. The executed term sheet says 6 months.',
+    rows: [
+      { label: 'Field · Phase I ESA currency', before: '≤ 6 months (term sheet p.5) · accepted', after: 'Conflict: 6 months (term sheet) vs 12 months (email)', kind: 'routed' },
+      { label: 'F-14 · Email vs executed term sheet', before: '-', after: 'New · in review with Deal Lead', kind: 'new' },
+      { label: 'F-04 · ESA lender window', before: 'Open · advisory', after: 'In review · not relaxed', kind: 'routed' },
+      { label: 'G1 condition X0222', before: 'Not verified', after: 'Not verified - evidence in conflict', kind: 'routed' },
+    ],
+    notes: ['The platform presents both values with their sources and does not resolve the conflict silently.', 'If the lender signs an amendment, uploading it as an executed document closes the conflict.'],
+    link: { label: 'Open extraction', to: '/deals/harlow/extraction' },
+  }),
+  s3: () => ({
+    title: 'New HCR term sheet mid-deal',
+    trigger: 'Everstead staff published rule pack 2026.2 after testing it against the sample deal. No code changed and nothing was redeployed.',
+    rows: [
+      { label: 'HCR-T-08e · per-unit cap, NYC metro', before: '35,000 / 37,000', after: '36,000 / 38,000 (effective 2026-11-15)', kind: 'recomputed' },
+      { label: 'HCR-T-08f · per-unit cap, rest of state', before: '30,500 / 32,500', after: '31,500 / 33,500 (effective 2026-11-15)', kind: 'recomputed' },
+      { label: 'HCR-T-26 · all-electric new construction', before: '-', after: 'Added · status Delayed (2027-07-01)', kind: 'new' },
+      { label: 'Harlow Commons pin', before: '2026.1', after: '2026.1 - practitioner decides when to re-run', kind: 'routed' },
+    ],
+    notes: ['Deals in flight stay pinned to the version they were checked against. A banner on each affected deal offers a re-run with a before/after diff.'],
+    link: { label: 'Open findings (re-run banner)', to: '/deals/harlow/findings' },
+  }),
+  s4: () => ({
+    title: 'Executed document silent on an extraction slot',
+    trigger: 'Linden Court\'s executed HAP contract was processed against X0139, the only project-document extraction slot in Phase 1.',
+    rows: [
+      { label: 'Contract units', before: '-', after: '120 of 120 · cited p.1', kind: 'new' },
+      { label: 'Current term', before: '-', after: 'Expires Feb 28, 2028 · cited p.1', kind: 'new' },
+      { label: 'Rent adjustment method', before: '-', after: 'Silent - flagged, not defaulted', kind: 'routed' },
+      { label: 'X0139 In-place HAP contract review', before: 'In progress', after: 'Blocked until the rider is supplied', kind: 'routed' },
+      { label: 'L-01 · HAP contract silent', before: '-', after: 'New · blocking', kind: 'new' },
+    ],
+    notes: ['Where executed documents are silent, the platform flags the gap and never fills it with a typical value (requirement 05).'],
+    link: { label: 'Open Linden Court extraction', to: '/deals/linden/extraction' },
+  }),
+};
+
+// ------------------------------------------------------------------------------------------------
 // Store
 // ------------------------------------------------------------------------------------------------
 export const useDemo = create<DemoState>()(
@@ -374,12 +437,12 @@ export const useDemo = create<DemoState>()(
 
         runScenario: (id) => {
           const s0 = get();
-          if (s0.scenarios[id]) return;
+          // Already ran: the state change is not replayed, but its "What changed" view opens again.
+          if (s0.scenarios[id]) { set({ whatChanged: SCENARIO_CHANGES[id]() }); return; }
           set((s) => ({ scenarios: { ...s.scenarios, [id]: true } }));
 
           if (id === 's1') {
             // Revised underwriting model supersedes v2, invalidates dependent findings and recomputes.
-            const r2 = underwrite(UW_INPUTS.v2);
             const r3 = underwrite(UW_INPUTS.v3);
             log('Document uploaded', 'Sponsor Pro Forma v3.xlsx (supersedes v2)', 'Version 3 of sponsor pro forma', 'harlow');
             set((s) => ({ extraDocs: [...s.extraDocs, 'd-proforma-v3'], superseded: { ...s.superseded, 'd-proforma-v2': 'd-proforma-v3' }, uwVersion: { ...s.uwVersion, harlow: 'v3' } }));
@@ -391,23 +454,6 @@ export const useDemo = create<DemoState>()(
             patchNode('harlow', 'X0173', { status: 'done', cause: undefined, source: 'system' });
             patchNode('harlow', 'X0171', { status: 'blocked', cause: `Sources short of uses by ${usd(-r3.balance)} (F-01, recomputed)` });
             sysLog('Calculations re-run', `Underwriting input set v3 · DSCR ${r3.dscr.toFixed(2)}x · sources - uses ${usd(r3.balance)}`, 'calc-engine 1.4.2 · deterministic', 'harlow');
-            set({
-              whatChanged: {
-                title: 'Revised underwriting model',
-                trigger: 'Sponsor Pro Forma v3 superseded v2. Four findings depended on v2 inputs; they were invalidated and recomputed with the same deterministic engine.',
-                rows: [
-                  { label: 'Sponsor pro forma', before: 'v2 (current)', after: 'v3 (current) · v2 kept as superseded', kind: 'superseded' },
-                  { label: 'F-03 · DSCR vs lender 1.20x', before: `${r2.dscr.toFixed(2)}x · blocking`, after: `${r3.dscr.toFixed(2)}x · resolved`, kind: 'resolved' },
-                  { label: 'F-07 · Regulatory term (HCR-T-16)', before: '30 years · advisory', after: '50 years · resolved', kind: 'resolved' },
-                  { label: 'F-01 · Sources - uses', before: usd(r2.balance), after: `${usd(r3.balance)} · still blocking`, kind: 'recomputed' },
-                  { label: 'F-01 · Gap-method credit (HCR-C-08)', before: usd(r2.gapCredit), after: usd(r3.gapCredit), kind: 'recomputed' },
-                  { label: 'F-02 · Developer fee % (HCR-C-02)', before: `${r2.devFeePctOfBase}% of ${usd(r2.devFeeBaseCap / 0.1)}`, after: `${r3.devFeePctOfBase}% of ${usd(r3.devFeeBaseCap / 0.1)} · still blocking`, kind: 'recomputed' },
-                  { label: 'Total development cost', before: usd(r2.tdc), after: usd(r3.tdc), kind: 'recomputed' },
-                ],
-                notes: ['Operating expenses fell from $9,885 to $9,560 per unit (485-x exemption, D1-08); soft costs rose by $150,000.', 'Superseded findings stay in the audit trail with their original values.'],
-                link: { label: 'Open underwriting', to: '/deals/harlow/underwriting' },
-              },
-            });
           }
 
           if (id === 's2') {
@@ -430,40 +476,12 @@ export const useDemo = create<DemoState>()(
             }));
             patchFinding('F-04', { status: 'in review' });
             sysLog('Conflict detected', 'Lender term sheet §9(c) vs lender email (Oct 20, 2026)', 'Executed document outranks correspondence - routed to human review', 'harlow');
-            set({
-              whatChanged: {
-                title: 'Lender email conflicts with a cited source',
-                trigger: 'An email from Hudson Mutual says a 12-month Phase I is acceptable. The executed term sheet says 6 months.',
-                rows: [
-                  { label: 'Field · Phase I ESA currency', before: '≤ 6 months (term sheet p.5) · accepted', after: 'Conflict: 6 months (term sheet) vs 12 months (email)', kind: 'routed' },
-                  { label: 'F-14 · Email vs executed term sheet', before: '-', after: 'New · in review with Deal Lead', kind: 'new' },
-                  { label: 'F-04 · ESA lender window', before: 'Open · advisory', after: 'In review · not relaxed', kind: 'routed' },
-                  { label: 'G1 condition X0222', before: 'Not verified', after: 'Not verified - evidence in conflict', kind: 'routed' },
-                ],
-                notes: ['The platform presents both values with their sources and does not resolve the conflict silently.', 'If the lender signs an amendment, uploading it as an executed document closes the conflict.'],
-                link: { label: 'Open extraction', to: '/deals/harlow/extraction' },
-              },
-            });
           }
 
           if (id === 's3') {
             // A new HCR term sheet arrives mid-deal: Everstead publishes rule pack 2026.2.
             set({ rulePackTested: true, rulePackPublished: '2026.2' });
             log('Rule pack version published', `NY HCR 9% LIHTC ${RULE_PACK_2026_2.version} - ${RULE_PACK_2026_2.title}`, 'Tested against sample deal · configuration only, no redeployment', undefined, JORDAN);
-            set({
-              whatChanged: {
-                title: 'New HCR term sheet mid-deal',
-                trigger: 'Everstead staff published rule pack 2026.2 after testing it against the sample deal. No code changed and nothing was redeployed.',
-                rows: [
-                  { label: 'HCR-T-08e · per-unit cap, NYC metro', before: '35,000 / 37,000', after: '36,000 / 38,000 (effective 2026-11-15)', kind: 'recomputed' },
-                  { label: 'HCR-T-08f · per-unit cap, rest of state', before: '30,500 / 32,500', after: '31,500 / 33,500 (effective 2026-11-15)', kind: 'recomputed' },
-                  { label: 'HCR-T-26 · all-electric new construction', before: '-', after: 'Added · status Delayed (2027-07-01)', kind: 'new' },
-                  { label: 'Harlow Commons pin', before: '2026.1', after: '2026.1 - practitioner decides when to re-run', kind: 'routed' },
-                ],
-                notes: ['Deals in flight stay pinned to the version they were checked against. A banner on each affected deal offers a re-run with a before/after diff.'],
-                link: { label: 'Open findings (re-run banner)', to: '/deals/harlow/findings' },
-              },
-            });
           }
 
           if (id === 's4') {
@@ -487,22 +505,9 @@ export const useDemo = create<DemoState>()(
             }));
             patchNode('linden', 'X0139', { status: 'blocked', cause: 'Executed HAP contract is silent on the rent adjustment method - slot flagged, not defaulted (L-01)' });
             sysLog('Extraction slot flagged', 'X0139 In-place HAP contract review · rent adjustment method', 'Executed document silent - never defaulted', 'linden');
-            set({
-              whatChanged: {
-                title: 'Executed document silent on an extraction slot',
-                trigger: 'Linden Court\'s executed HAP contract was processed against X0139, the only project-document extraction slot in Phase 1.',
-                rows: [
-                  { label: 'Contract units', before: '-', after: '120 of 120 · cited p.1', kind: 'new' },
-                  { label: 'Current term', before: '-', after: 'Expires Feb 28, 2028 · cited p.1', kind: 'new' },
-                  { label: 'Rent adjustment method', before: '-', after: 'Silent - flagged, not defaulted', kind: 'routed' },
-                  { label: 'X0139 In-place HAP contract review', before: 'In progress', after: 'Blocked until the rider is supplied', kind: 'routed' },
-                  { label: 'L-01 · HAP contract silent', before: '-', after: 'New · blocking', kind: 'new' },
-                ],
-                notes: ['Where executed documents are silent, the platform flags the gap and never fills it with a typical value (requirement 05).'],
-                link: { label: 'Open Linden Court extraction', to: '/deals/linden/extraction' },
-              },
-            });
           }
+
+          set({ whatChanged: SCENARIO_CHANGES[id]() });
         },
 
         setTamper: (seq) => set({ tamperSeq: seq }),
