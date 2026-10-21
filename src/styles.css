@@ -1,0 +1,271 @@
+/* ============================================================================
+   Global polish layer - antd-modern-style-demo house style, rebranded for Everstead.
+   Accent swap points from the skill now use plum #521B3A and gold #F2E286.
+   Import once in main.tsx, after antd/dist/reset.css.
+   ============================================================================ */
+
+:root {
+  --plum: #521B3A;
+  --plum-hover: #6B2A4E;
+  --plum-deep: #3F1229;
+  --ink: #2B2026;
+  --body: #4A3F44;
+  --secondary: #6F6368;
+  --muted: #857A7E;
+  --border: #E4DCD8;
+  --border-soft: #ECE3DF;
+  --page: #FDFAF7;
+  --panel: #F5EFEA;
+  --panel-soft: #FCF8F4;
+  --gold: #F2E286;
+  --gold-fill: #FBF3C9;
+  --plum-tint: #F3E9EE;
+  --plum-tint-2: #EADDE3;
+  --plum-tint-3: #CDB9C3;
+  --font-head: "Archivo", "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-scan: "Courier New", Courier, monospace;
+}
+
+html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--page);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5,
+.ant-typography h1, .ant-typography h2, .ant-typography h3, .ant-typography h4, .ant-typography h5,
+h1.ant-typography, h2.ant-typography, h3.ant-typography, h4.ant-typography, h5.ant-typography,
+.ant-card-head-title, .ant-modal-title, .ant-drawer-title, .section-title, .metric-value, .hero h1 {
+  font-family: var(--font-head) !important;
+  letter-spacing: -0.015em;
+}
+
+/* ---- Slim scrollbar ---- */
+* { scrollbar-width: thin; scrollbar-color: #D6CBC6 transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: #D6CBC6; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+
+/* ---- Layout shell ---- */
+.app-header {
+  border-bottom: 3px solid var(--gold); /* accent */
+  box-shadow: 0 2px 12px rgba(43, 32, 38, 0.22);
+  line-height: normal;
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+}
+.app-header .ant-space-item { display: flex; align-items: center; }
+.ant-layout-sider { border-right: 1px solid var(--border-soft); }
+.ant-menu-light { font-weight: 500; }
+.ant-menu-item-group-title { font-size: 10.5px !important; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+
+.env-badge {
+  background: var(--gold); color: var(--ink); font-weight: 800; font-size: 10.5px; letter-spacing: 0.14em;
+  padding: 3px 9px; border-radius: 6px; text-transform: uppercase; cursor: default;
+}
+.header-btn.ant-btn { color: #fff; border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.06); }
+.header-btn.ant-btn:hover { color: var(--ink) !important; background: var(--gold) !important; border-color: var(--gold) !important; }
+
+.app-footer {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  border-top: 1px solid var(--border-soft); padding: 14px 24px !important;
+}
+.app-footer .credit { letter-spacing: 0.04em; text-transform: none; font-size: 12px; }
+
+/* ---- Cards: soft elevation + hover lift ---- */
+.ant-card {
+  border: 1px solid var(--border-soft) !important;
+  box-shadow: 0 1px 2px rgba(43, 32, 38, 0.04), 0 6px 18px rgba(43, 32, 38, 0.05);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.ant-card-hoverable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(43, 32, 38, 0.12);
+  border-color: var(--plum-tint-3) !important; /* accent (tint) */
+}
+.ant-card-head { border-bottom: 1px solid var(--border-soft); font-weight: 700; }
+
+/* ---- Typography rhythm ---- */
+.eyebrow { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--plum); }
+.section-title { font-size: 20px; font-weight: 700; margin: 0; color: var(--ink); }
+.section-desc { color: var(--secondary); margin: 3px 0 0; font-size: 13.5px; }
+.muted { color: var(--muted); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* ---- Tags as pills ---- */
+.ant-tag { border-radius: 999px; font-weight: 600; padding-inline: 9px; }
+
+/* AntD's "purple" preset is a violet outside Everstead's palette; map it to plum tints. */
+.ant-tag.ant-tag-purple { color: var(--plum); background: var(--plum-tint); border-color: var(--plum-tint-3); }
+
+/* ---- Tables ---- */
+.ant-table-wrapper .ant-table { border-radius: 12px; }
+.ant-table-thead > tr > th { text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; font-weight: 700; }
+.clickable-rows .ant-table-tbody > tr { cursor: pointer; }
+.avatar-initials {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: var(--plum); background: var(--plum-tint); flex: none;
+}
+
+/* ---- Hero band: plum with Everstead's slanted-parallelogram motif ---- */
+.hero {
+  position: relative; overflow: hidden; border-radius: 18px; padding: 32px 34px 28px; color: #fff;
+  background: linear-gradient(135deg, #5A1F41 0%, var(--plum) 55%, var(--plum-deep) 100%);
+  box-shadow: 0 14px 40px rgba(63, 18, 41, 0.28);
+}
+.hero::before, .hero::after {
+  content: ""; position: absolute; pointer-events: none;
+  background: rgba(255, 255, 255, 0.055);
+  transform: skewX(-22deg);
+}
+.hero::before { right: 60px; top: -40px; width: 170px; height: 300px; }
+.hero::after { right: -80px; top: -40px; width: 120px; height: 300px; }
+.hero h1 { color: #fff; margin: 10px 0 8px; font-size: 32px; font-weight: 700; position: relative; z-index: 1; }
+.hero .sub { color: rgba(255, 255, 255, 0.78); font-size: 15px; max-width: 700px; position: relative; z-index: 1; }
+.hero .eyebrow { color: var(--gold); } /* accent (light) */
+.hero .rule { width: 120px; height: 3px; background: var(--gold); margin: 14px 0 0; border-radius: 2px; }
+
+/* ---- Metric tiles ---- */
+.metric-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.metric-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.metric-value { font-size: 26px; font-weight: 700; line-height: 1.1; margin-top: 7px; }
+.metric-sub { font-size: 12px; color: var(--secondary); margin-top: 5px; }
+.metric-chip { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex: none; }
+
+.icon-chip { width: 44px; height: 44px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }
+
+/* ---- Workflow rail ---- */
+.rail { display: flex; position: relative; padding: 8px 0 2px; }
+.rail-step { flex: 1; text-align: center; position: relative; min-width: 0; }
+.rail-step:not(:first-child)::before {
+  content: ""; position: absolute; top: 15px; left: -50%; width: 100%; height: 3px;
+  background: #EAE2DE; z-index: 0; border-radius: 2px;
+}
+.rail-step.on:not(:first-child)::before { background: var(--plum); } /* accent */
+.rail-dot {
+  position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto;
+  font-size: 12px; font-weight: 700; background: #fff; border: 2px solid #E3D9D4; color: var(--muted);
+  transition: all 0.2s ease;
+}
+.rail-dot.done { background: var(--plum); border-color: var(--plum); color: #fff; }                                      /* accent */
+.rail-dot.current { background: #fff; border-color: var(--plum); color: var(--plum); box-shadow: 0 0 0 4px rgba(82, 27, 58, 0.14); } /* accent */
+.rail-dot.blocked { background: #fff; border-color: #CF1322; color: #CF1322; box-shadow: 0 0 0 4px rgba(207, 19, 34, 0.12); }
+.rail-dot.gate { border-radius: 8px; transform: rotate(45deg); width: 26px; height: 26px; margin-top: 3px; }
+.rail-dot.gate > * { transform: rotate(-45deg); }
+.rail-label { margin-top: 8px; font-size: 11px; line-height: 1.25; color: var(--muted); padding: 0 3px; }
+.rail-label.active { color: var(--ink); font-weight: 700; }
+
+.ant-timeline .ant-timeline-item-head { border-color: var(--plum); } /* accent */
+
+/* ---- Badges in the review pack's own style (p.250) ---- */
+.rt-badge, .sc-badge {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; border-radius: 5px;
+  padding: 1px 7px; line-height: 18px; white-space: nowrap; letter-spacing: 0.01em;
+}
+.rt-Process { color: var(--muted); background: transparent; padding-inline: 0; font-weight: 600; }
+.rt-Hard { color: var(--plum); border: 1px solid var(--plum); background: #fff; }
+.rt-Program { color: var(--ink); background: var(--gold); }
+.rt-Extract { color: #fff; background: #8A5A78; }
+.sc-Container { color: var(--muted); padding-inline: 0; font-weight: 600; }
+.sc-Assisted { color: var(--ink); background: var(--gold); }
+.sc-Human-only { color: var(--plum); border: 1px solid var(--plum); background: #fff; }
+.sc-Executable { color: #fff; background: var(--plum); }
+
+/* ---- Knowledge-layer labels ---- */
+.basis {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+  border-radius: 999px; padding: 1px 9px 1px 7px; line-height: 19px; white-space: nowrap;
+}
+.basis-deal { background: #E7F1EA; color: #1F5B34; }
+.basis-rule { background: var(--plum-tint); color: var(--plum); }
+.basis-general { background: #EEF0F3; color: #4B5563; border: 1px dashed #B6BCC6; }
+
+/* ---- Citation chip ---- */
+.cite {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600;
+  color: var(--plum); background: var(--panel-soft); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1px 7px; cursor: pointer; white-space: nowrap; max-width: 100%;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.cite:hover { background: var(--plum-tint); border-color: var(--plum-tint-3); }
+.cite .cite-doc { overflow: hidden; text-overflow: ellipsis; }
+sup.cite-sup { color: var(--plum); font-weight: 700; cursor: pointer; padding: 0 1px; }
+
+/* ---- Paper document viewer ---- */
+.viewer-wrap { background: #E9E2DE; border-radius: 12px; padding: 22px; max-height: 72vh; overflow: auto; }
+.paper {
+  background: #fff; max-width: 680px; margin: 0 auto 22px; padding: 46px 54px 40px;
+  box-shadow: 0 2px 10px rgba(43, 32, 38, 0.14); border-radius: 2px; color: #222; font-size: 13px; line-height: 1.6;
+  position: relative;
+}
+.paper.scan {
+  font-family: var(--font-scan); font-size: 12.5px; background: #FBFAF6;
+  transform: rotate(-0.25deg);
+  background-image: radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+.paper h3 { font-family: var(--font-head); font-size: 15px; margin: 0 0 12px; letter-spacing: 0; }
+.paper.scan h3 { font-family: var(--font-scan); text-transform: uppercase; }
+.paper .page-no { position: absolute; bottom: 14px; right: 22px; font-size: 10px; color: #999; }
+.paper .doc-head { font-size: 10px; color: #888; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 16px; }
+.paper p { margin: 0 0 10px; }
+.paper table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 12px; }
+.paper td, .paper th { border: 1px solid #ddd; padding: 4px 7px; text-align: left; }
+.passage { border-radius: 3px; transition: background 0.3s ease, box-shadow 0.3s ease; }
+.passage.cited { background: rgba(242, 226, 134, 0.38); }
+.passage.focus { background: var(--gold); box-shadow: 0 0 0 3px rgba(242, 226, 134, 0.55); }
+
+/* ---- Spreadsheet grid ---- */
+.sheet { border-collapse: collapse; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; width: 100%; background: #fff; }
+.sheet th { background: var(--panel); color: var(--muted); font-weight: 600; border: 1px solid var(--border); padding: 3px 6px; text-align: center; }
+.sheet td { border: 1px solid var(--border-soft); padding: 4px 8px; white-space: nowrap; }
+.sheet td.num { text-align: right; }
+.sheet td.label { color: var(--body); }
+.sheet td.hl { background: var(--gold); box-shadow: inset 0 0 0 2px var(--plum); font-weight: 700; }
+
+/* ---- Readiness report document ---- */
+.report-doc { background: #fff; border: 1px solid var(--border-soft); border-radius: 6px; padding: 44px 56px; box-shadow: 0 8px 28px rgba(43,32,38,0.08); }
+.report-doc h2 { font-family: var(--font-head); font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--plum); color: var(--plum); text-transform: uppercase; letter-spacing: 0.06em; }
+.report-doc .report-item { padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+.report-doc .report-item:last-child { border-bottom: 0; }
+
+/* ---- Small helpers ---- */
+.kv { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; font-size: 13px; }
+.kv .k { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 1px; }
+.panel { background: var(--panel); border-radius: 12px; padding: 14px 16px; }
+.callout-gold { background: var(--gold-fill); border-left: 3px solid var(--plum); border-radius: 6px; padding: 10px 14px; }
+.stripe-blocked { background: repeating-linear-gradient(-45deg, #FFF1F0, #FFF1F0 8px, #FFF7F6 8px, #FFF7F6 16px); }
+.fade-in { animation: fadeIn 0.35s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+.typing-caret::after { content: "▍"; animation: pulse 1s infinite; color: var(--plum); margin-left: 1px; }
+
+.login-bg {
+  min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr;
+  background: var(--page);
+}
+.login-art {
+  position: relative; overflow: hidden; color: #fff; padding: 56px 60px;
+  background: linear-gradient(150deg, #5A1F41 0%, var(--plum) 60%, var(--plum-deep) 100%);
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.login-art .slab { position: absolute; background: rgba(255,255,255,0.055); transform: skewX(-22deg); }
+@media (max-width: 960px) { .login-bg { grid-template-columns: 1fr; } .login-art { display: none; } }
+
+@media (max-width: 1360px) { .header-sub { display: none; } }
+
+/* ---- Print: readiness report export ---- */
+@media print {
+  .no-print, .ant-layout-sider, .app-header, .app-footer, .ant-tour, .ant-float-btn { display: none !important; }
+  .ant-layout, .ant-layout-content { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+  .report-doc { border: 0; box-shadow: none; padding: 0; }
+  body { background: #fff; }
+}

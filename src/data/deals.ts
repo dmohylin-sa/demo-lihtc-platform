@@ -1,0 +1,81 @@
+// Fictional sample deals. All are NY HCR 9% LIHTC (competitive), NYC metro.
+import type { Deal, ProjectType } from './types';
+
+export const PROJECT_TYPES: Record<ProjectType, { label: string; branch: string }> = {
+  new: { label: 'New construction', branch: 'X0015' },
+  rehab: { label: 'Rehabilitation', branch: 'X0026' },
+  reuse: { label: 'Adaptive reuse / conversion', branch: 'X0039' },
+  preservation: { label: 'Preservation / resyndication', branch: 'X0044' },
+};
+
+export const SEED_DEALS: Deal[] = [
+  {
+    id: 'harlow',
+    name: 'Harlow Commons',
+    location: 'Harlow Avenue, Bronx, NY (fictional site)',
+    borough: 'Bronx',
+    units: 84,
+    projectType: 'new',
+    program: '9% LIHTC (competitive)',
+    agency: 'NYS HCR',
+    overlays: ['9% LIHTC', 'HCR', 'Income averaging', 'NYSERDA clean energy'],
+    tenantId: 'northbank',
+    treeVersion: 'v3.6.1',
+    ruleVersion: '2026.1',
+    createdAt: '2026-08-04',
+    targetClosing: '2026-12-15',
+    tdc: 48_200_000,
+    creditRequest: 2_750_000,
+    stage: 'X0169',
+    depth: 'full',
+    dealLead: 'dealLead',
+  },
+  {
+    id: 'linden',
+    name: 'Linden Court Apartments',
+    location: 'Linden Street, Brooklyn, NY (fictional site)',
+    borough: 'Brooklyn',
+    units: 120,
+    projectType: 'rehab',
+    program: '9% LIHTC (competitive)',
+    agency: 'NYS HCR',
+    overlays: ['9% LIHTC', 'HCR', 'Section 8 HAP', 'Occupied rehab'],
+    tenantId: 'northbank',
+    treeVersion: 'v3.6.1',
+    ruleVersion: '2026.1',
+    createdAt: '2026-09-10',
+    targetClosing: '2027-03-31',
+    tdc: 61_400_000,
+    creditRequest: 2_650_000,
+    stage: 'X0101',
+    depth: 'partial',
+    dealLead: 'dealLead',
+  },
+  {
+    id: 'pier',
+    name: 'Pier Street Lofts',
+    location: 'Pier Street, Queens, NY (fictional site)',
+    borough: 'Queens',
+    units: 64,
+    projectType: 'reuse',
+    program: '9% LIHTC (competitive)',
+    agency: 'NYS HCR',
+    overlays: ['9% LIHTC', 'HCR', '467-m conversion'],
+    tenantId: 'northbank',
+    treeVersion: 'v3.6',
+    ruleVersion: '2026.1',
+    createdAt: '2026-10-12',
+    targetClosing: '2027-05-30',
+    tdc: null,
+    creditRequest: null,
+    stage: 'X0062',
+    depth: 'intake',
+    dealLead: 'dealLead',
+  },
+];
+
+// Another sponsor's deals: never visible to Northbank users (tenant isolation), listed only in admin counts.
+export const OTHER_TENANT_DEALS = [
+  { id: 'ridgeview', name: 'Ridgeview Terrace', tenant: 'Harbor & Hill Development', projectType: 'New construction', units: 96 },
+  { id: 'canal', name: 'Canal Works', tenant: 'Harbor & Hill Development', projectType: 'Adaptive reuse / conversion', units: 58 },
+];
