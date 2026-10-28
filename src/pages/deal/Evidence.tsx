@@ -9,6 +9,7 @@ import { RULES_HCR9 } from '../../data/rules-hcr9';
 import { NEW_RULE_T26 } from '../../data/ops';
 import { CitationChip, findPassage } from '../../components/viewer';
 import { BasisLabel, FindingStatusTag, MetricCard, PageHeader, SeverityTag } from '../../components/ui';
+import { TodayGate } from '../../components/today';
 import type { Citation, Finding, Rule, Severity } from '../../data/types';
 
 const ruleById = (id: string): Rule | undefined => RULES_HCR9.find((r) => r.id === id) ?? (id === NEW_RULE_T26.id ? NEW_RULE_T26 : undefined);
@@ -106,6 +107,7 @@ export default function Evidence() {
       <PageHeader
         eyebrow="Source map"
         title="Every finding, traced to its sources"
+        cap="evidence.map"
         desc="Finding → rule it applies → the document, page and passage it rests on. Each line is labelled with its knowledge layer, and the layers never mix."
       />
 
@@ -134,6 +136,7 @@ export default function Evidence() {
         </Col>
 
         <Col xs={24} xl={9}>
+          <TodayGate cap="evidence.search">
           <Card title={<span><SearchOutlined /> Evidence search</span>} style={{ marginBottom: 16 }}>
             <Input.Search allowClear placeholder={`Ask about ${deal.name}`} value={query} onChange={(e) => setQuery(e.target.value)} enterButton />
             <Space size={[6, 6]} wrap style={{ margin: '10px 0 4px' }}>
@@ -180,7 +183,9 @@ export default function Evidence() {
               <div className="muted" style={{ fontSize: 13 }}>Try one of the suggested questions. Answers come back labelled as deal evidence, an Everstead rule, or general information.</div>
             )}
           </Card>
+          </TodayGate>
 
+          <TodayGate cap="evidence.graph">
           <Card>
             <Space align="start" size={12}>
               <span className="icon-chip" style={{ background: 'var(--plum-tint)', color: 'var(--plum)' }}><DeploymentUnitOutlined /></span>
@@ -197,6 +202,7 @@ export default function Evidence() {
               </div>
             </Space>
           </Card>
+          </TodayGate>
         </Col>
       </Row>
     </div>

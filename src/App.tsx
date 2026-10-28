@@ -25,6 +25,9 @@ import Jobs from './pages/admin/Jobs';
 import ModelOps from './pages/admin/ModelOps';
 import AdminAudit from './pages/admin/AdminAudit';
 import DataExport from './pages/admin/DataExport';
+import AgentRuns from './pages/deal/AgentRuns';
+import CurrentState from './pages/CurrentState';
+import { TodayPage } from './components/today';
 
 function RequireLogin({ children }: { children: ReactNode }) {
   const loggedIn = useDemo((s) => s.loggedIn);
@@ -46,26 +49,28 @@ export default function App() {
         <Route path="deals/:dealId" element={<DealLayout />}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<Overview />} />
-          <Route path="process" element={<Process />} />
+          <Route path="process" element={<TodayPage cap="lifecycle.processTree"><Process /></TodayPage>} />
           <Route path="documents" element={<Documents />} />
-          <Route path="extraction" element={<Extraction />} />
+          <Route path="runs" element={<AgentRuns />} />
+          <Route path="extraction" element={<TodayPage cap="extraction.fields" also={['extraction.confidence', 'extraction.silentConflict', 'review.bulk']}><Extraction /></TodayPage>} />
           <Route path="underwriting" element={<Underwriting />} />
           <Route path="findings" element={<Findings />} />
-          <Route path="decisions" element={<Decisions />} />
+          <Route path="decisions" element={<TodayPage cap="lifecycle.decisions" also={['access.rbac']}><Decisions /></TodayPage>} />
           <Route path="report" element={<Report />} />
           <Route path="evidence" element={<Evidence />} />
           <Route path="audit" element={<Audit />} />
         </Route>
         <Route path="acceptance" element={<Acceptance />} />
+        <Route path="current-state" element={<CurrentState />} />
         <Route path="admin" element={<AdminGuard />}>
           <Route index element={<Navigate to="rules" replace />} />
-          <Route path="tenants" element={<Tenants />} />
-          <Route path="tree" element={<TreeVersions />} />
+          <Route path="tenants" element={<TodayPage cap="access.rbac" also={['tenancy.isolation', 'access.mfa']}><Tenants /></TodayPage>} />
+          <Route path="tree" element={<TodayPage cap="lifecycle.treeVersions"><TreeVersions /></TodayPage>} />
           <Route path="rules" element={<RulePacks />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="model-ops" element={<ModelOps />} />
           <Route path="audit" element={<AdminAudit />} />
-          <Route path="export" element={<DataExport />} />
+          <Route path="export" element={<TodayPage cap="data.export"><DataExport /></TodayPage>} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

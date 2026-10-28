@@ -15,6 +15,7 @@ export default function Audit() {
       <PageHeader
         eyebrow="Audit trail"
         title="Tamper-evident audit trail"
+        cap="audit.trail"
         desc="Append-only: every action, finding, calculation and decision is logged with actor, time and basis, and chained by hash so any edit is detectable."
       />
       <AuditWorkspace events={events} scopeLabel={`${deal.name} audit trail`} fileStem={`audit-${deal.id}`} />

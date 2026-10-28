@@ -9,6 +9,7 @@ import { PROJECT_TYPES } from '../data/deals';
 import { TREE_PHASE1 } from '../data/tree-phase1';
 import { HealthTag, MetricCard } from '../components/ui';
 import { PermButton, Sensitive } from '../components/perm';
+import { CapChip, TodayGate, todayCol, useToday } from '../components/today';
 import { usd } from '../calc/underwriting';
 import type { Deal, ProjectType } from '../data/types';
 
@@ -94,6 +95,7 @@ export default function Portfolio() {
   const findings = useDemo((s) => s.findings);
   const decisions = useDemo((s) => s.decisions);
   const persona = useDemo((s) => s.persona);
+  const today = useToday();
   const [open, setOpen] = useState(false);
 
   const rows = useMemo(() => deals.map((d) => ({ deal: d, m: dealMetrics({ nodeStatus, findings, decisions }, d.id) })), [deals, nodeStatus, findings, decisions]);
@@ -112,15 +114,16 @@ export default function Portfolio() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
         <Col xs={12} lg={6}><MetricCard label="Active deals" value={deals.length} sub="9% LIHTC · NYS HCR" icon={<ApartmentOutlined />} tone="primary" /></Col>
-        <Col xs={12} lg={6}><MetricCard label="Avg. readiness" value={`${Math.round(totals.readiness / Math.max(rows.length, 1))}%`} sub="Phase 1 steps complete" icon={<FileDoneOutlined />} /></Col>
+        <Col xs={12} lg={6}><TodayGate cap="lifecycle.processTree" chip="none"><MetricCard label="Avg. readiness" value={`${Math.round(totals.readiness / Math.max(rows.length, 1))}%`} sub="Phase 1 steps complete" icon={<FileDoneOutlined />} /></TodayGate></Col>
         <Col xs={12} lg={6}><MetricCard label="Blocking findings" value={totals.blocking} sub="need action before IC" icon={<AlertOutlined />} tone={totals.blocking ? 'danger' : 'success'} /></Col>
-        <Col xs={12} lg={6}><MetricCard label="Decisions awaiting" value={totals.awaiting} sub="human decision points" icon={<ScheduleOutlined />} /></Col>
+        <Col xs={12} lg={6}><TodayGate cap="lifecycle.decisions" chip="none"><MetricCard label="Decisions awaiting" value={totals.awaiting} sub="human decision points" icon={<ScheduleOutlined />} /></TodayGate></Col>
       </Row>
 
       {persona === 'principal' && harlow ? (
         <Card style={{ marginBottom: 18, borderLeft: '4px solid var(--plum)' }} title={<span><span className="eyebrow" style={{ display: 'block' }}>Executive summary · Harlow Commons</span>Is this deal safe to say yes to?</span>}
           extra={<Button type="link" onClick={() => navigate('/deals/harlow/report')}>Open readiness report</Button>}>
           <p style={{ margin: 0, fontSize: 15 }}>
+            <CapChip cap="summary.executive" style={{ marginRight: 8 }} />
             <Tag color={harlow.m.blocking ? 'error' : 'success'} style={{ fontWeight: 800 }}>{harlow.m.blocking ? 'NOT YET' : 'READY'}</Tag>
             {harlow.m.blocking
               ? `Not ready for investment committee: ${harlow.m.blocking} blocking item${harlow.m.blocking > 1 ? 's' : ''}. Top issues: `
@@ -132,7 +135,7 @@ export default function Portfolio() {
 
       <Card
         title="Deals"
-        extra={<PermButton cap="upload" denied="Only sponsor practitioners can open a deal" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>New deal</PermButton>}
+        extra={<PermButton feature="lifecycle.processTree" cap="upload" denied="Only sponsor practitioners can open a deal" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>New deal</PermButton>}
         styles={{ body: { padding: 0 } }}
         data-tour="portfolio-table"
       >
@@ -151,10 +154,10 @@ export default function Portfolio() {
                 </Space>
               ),
             },
-            { title: 'Current workstream', render: (_, r) => <span>{nodeName(r.deal.stage)}<br /><span className="muted mono">{r.deal.stage}</span></span> },
-            { title: 'Readiness', width: 170, render: (_, r) => <Progress percent={r.m.readiness} size="small" strokeColor="#521B3A" /> },
+            { ...todayCol('Current workstream', 'lifecycle.processTree', today), render: (_, r) => <span>{nodeName(r.deal.stage)}<br /><span className="muted mono">{r.deal.stage}</span></span> },
+            { ...todayCol('Readiness', 'lifecycle.processTree', today), width: 170, render: (_, r) => <Progress percent={r.m.readiness} size="small" strokeColor="#521B3A" /> },
             {
-              title: 'Health signal', render: (_, r) => (
+              ...todayCol('Health signal', 'lifecycle.health', today), render: (_, r) => (
                 <Tooltip title={r.m.drivers.length ? <span>Driven by: {r.m.drivers.join(' · ')}</span> : 'No open blocking items'}>
                   <span><HealthTag value={r.m.health} /></span>
                 </Tooltip>
@@ -162,11 +165,12 @@ export default function Portfolio() {
             },
             { title: 'Blocking', align: 'center', render: (_, r) => (r.m.blocking ? <Tag color="error">{r.m.blocking}</Tag> : <span className="muted">-</span>) },
             { title: 'TDC', align: 'right', render: (_, r) => (r.deal.tdc ? <Sensitive>{usd(r.deal.tdc, { compact: true })}</Sensitive> : <span className="muted">Not yet</span>) },
-            { title: 'Pins', render: (_, r) => <span className="mono" style={{ whiteSpace: 'nowrap' }}>{r.deal.treeVersion} · {r.deal.ruleVersion}</span> },
+            { ...todayCol('Pins', 'rules.engine', today), render: (_, r) => <span className="mono" style={{ whiteSpace: 'nowrap' }}>{r.deal.treeVersion} · {r.deal.ruleVersion}</span> },
           ]}
         />
       </Card>
       <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+        <CapChip cap="tenancy.isolation" style={{ marginRight: 6 }} />
         Tenant isolation: Northbank users see Northbank deals only. Another sponsor's deals on the same platform never appear here, in search or in retrieval.
       </p>
       <NewDealModal open={open} onClose={() => setOpen(false)} />

@@ -1,5 +1,6 @@
 // Underwriting: the input set read from Form A-1 and the sponsor pro forma (row 9), and the deterministic
 // calculations on it (row 10) - sources and uses, DSCR, eligible basis to credit, fee caps, sensitivity, tolerances.
+// The workbook-audit tab shows what today's underwriting agent (009) does: a six-gate audit of the sponsor workbook.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { App as AntdApp, Alert, Card, Col, Empty, Progress, Row, Slider, Space, Table, Tabs, Tag } from 'antd';
@@ -15,6 +16,15 @@ import { MetricCard, PageHeader } from '../../components/ui';
 import { CitationChip } from '../../components/viewer';
 import { PermButton, Sensitive } from '../../components/perm';
 import type { Citation, UwInputs } from '../../data/types';
+import { CapChip, TodayGate, useToday } from '../../components/today';
+import { CAPS, CAP_STATUS, type CapId } from '../../data/currentState';
+import WorkbookAudit from './WorkbookAudit';
+
+// Today-lens status per tab: the agent audits the workbook's figures; recomputing them in code is Release 1.
+const TAB_CAPS: Record<string, CapId> = {
+  audit: 'uw.workbookAudit', inputs: 'uw.cellCitations', su: 'uw.calcEngine', op: 'uw.calcEngine', credit: 'uw.calcEngine',
+  fees: 'uw.calcEngine', sens: 'uw.sensitivity', tol: 'testing.evals',
+};
 
 const SERIES = ['#521B3A', '#F2E286', '#8A5A78', '#CDB9C3', '#6B2A4E', '#E9D27A', '#B48AA3', '#EADDE3'];
 
@@ -149,6 +159,7 @@ export default function Underwriting() {
   const r = useMemo(() => underwrite(inputs), [inputs]);
   const r2 = useMemo(() => underwrite(UW_INPUTS.v2), []);
   const r3 = useMemo(() => underwrite(UW_INPUTS.v3), []);
+  const today = useToday();
 
   if (deal.id !== 'harlow') {
     return (
@@ -203,6 +214,7 @@ export default function Underwriting() {
           </Col>
           {version === 'v3' ? (
             <Col xs={24} xl={10}>
+              <TodayGate cap="change.supersede">
               <Card title="Version comparison · v2 vs v3">
                 <Table
                   size="small"
@@ -217,6 +229,7 @@ export default function Underwriting() {
                 />
                 <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>v2 is kept as superseded; findings that depended on it were invalidated and recomputed.</p>
               </Card>
+              </TodayGate>
             </Col>
           ) : null}
           {version === 'v2' ? (
@@ -478,6 +491,13 @@ export default function Underwriting() {
           </Col>
           <Col xs={24} lg={9}>
             <Card title="Known-answer tests">
+              {today ? (
+                <div style={{ marginBottom: 12, fontSize: 13 }}>
+                  <strong>Today: known-answer workbooks · run by hand · not gated in CI</strong>
+                  <div style={{ marginTop: 4, color: 'var(--body)' }}>{CAPS['testing.evals'].today}</div>
+                  <div className="muted" style={{ marginTop: 6 }}>Release 1, below: every known-answer test runs on every build.</div>
+                </div>
+              ) : null}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
                 <Progress type="circle" percent={100} size={86} strokeColor="#389E0D" format={() => '38 / 38'} />
                 <div style={{ fontSize: 13 }}>Unit-tested, regression-tested and reproducible. Principal rulings supplied as known-answer tests run on every build.</div>
@@ -499,17 +519,31 @@ export default function Underwriting() {
     },
   ];
 
+  const auditTab = { key: 'audit', label: 'Workbook audit · 6 gates', children: <WorkbookAudit dealId={deal.id} /> };
+  // Today: the audit tab leads; every tab carries its status chip, and what the platform lacks is dimmed.
+  const allTabs = (today ? [auditTab, ...tabs] : [...tabs, auditTab]).map((t) => (today && TAB_CAPS[t.key]
+    ? {
+      ...t,
+      label: <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{t.label}<CapChip cap={TAB_CAPS[t.key]} label={CAP_STATUS[CAPS[TAB_CAPS[t.key]].status].short} /></span>,
+      children: <TodayGate cap={TAB_CAPS[t.key]} chip="none">{t.children}</TodayGate>,
+    }
+    : t));
+
   return (
     <div className="fade-in">
       <PageHeader
         eyebrow="Rows 9-10 · workbook ingestion and deterministic calculations"
         title="Underwriting"
+        cap="uw.workbookAudit"
         desc="DSCR, eligible basis, credit, fee caps, sources and uses: tested, deterministic code - not a language model."
         extra={
           <>
-            <Tag icon={<ExperimentOutlined />} color="purple" style={{ padding: '5px 10px', fontSize: 12.5 }}>Deterministic code · {CALC_ENGINE_VERSION} · known-answer tests 38/38</Tag>
+            {today
+              ? <Tag icon={<ExperimentOutlined />} color="gold" style={{ padding: '5px 10px', fontSize: 12.5 }}>Today: agent 009 audits the sponsor workbook · deterministic engine not described</Tag>
+              : <Tag icon={<ExperimentOutlined />} color="purple" style={{ padding: '5px 10px', fontSize: 12.5 }}>Deterministic code · {CALC_ENGINE_VERSION} · known-answer tests 38/38</Tag>}
             <Tag style={{ padding: '5px 10px', fontSize: 12.5 }}>Input set {version}</Tag>
             <PermButton
+              feature="change.supersede"
               cap="editUnderwriting"
               denied="Only the Underwriting Analyst edits underwriting inputs"
               icon={<EditOutlined />}
@@ -532,7 +566,7 @@ export default function Underwriting() {
       </Row>
 
       <Card styles={{ body: { paddingTop: 6 } }}>
-        <Tabs items={tabs} activeKey={params.get('tab') ?? 'inputs'} onChange={(k) => setParams({ tab: k }, { replace: true })} />
+        <Tabs items={allTabs} activeKey={params.get('tab') ?? (today ? 'audit' : 'inputs')} onChange={(k) => setParams({ tab: k }, { replace: true })} />
       </Card>
       <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
         Source documents: <CitationChip c={{ docId: 'd-form-a1', cell: 'Sources!C16' }} /> <CitationChip c={{ docId: proFormaDoc, cell: 'Operating Budget!C24' }} />

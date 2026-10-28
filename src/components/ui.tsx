@@ -7,6 +7,8 @@ import {
   FileSearchOutlined, BookOutlined, GlobalOutlined,
 } from '@ant-design/icons';
 import type { Basis, FieldStatus, FindingStatus, Health, NodeStatus, Severity } from '../data/types';
+import type { CapId } from '../data/currentState';
+import { CapChip } from './today';
 
 export function MetricCard({ label, value, sub, icon, tone = 'neutral', dataTour }: {
   label: string; value: ReactNode; sub?: ReactNode; icon?: ReactNode; tone?: 'primary' | 'neutral' | 'danger' | 'success'; dataTour?: string;
@@ -28,7 +30,7 @@ export function MetricCard({ label, value, sub, icon, tone = 'neutral', dataTour
   );
 }
 
-export interface RailStage { key: string; label: string; state: 'done' | 'current' | 'blocked' | 'todo'; gate?: boolean; hint?: string }
+export interface RailStage { key: string; label: string; state: 'done' | 'current' | 'blocked' | 'todo'; gate?: boolean; hint?: string; mark?: string }
 
 export function StageRail({ stages, onClick }: { stages: RailStage[]; onClick?: (key: string) => void }) {
   const lastOn = stages.reduce((acc, s, i) => (s.state !== 'todo' ? i : acc), -1);
@@ -38,7 +40,7 @@ export function StageRail({ stages, onClick }: { stages: RailStage[]; onClick?: 
         <div className={`rail-step${i <= lastOn ? ' on' : ''}`} key={s.key} onClick={() => onClick?.(s.key)} style={{ cursor: onClick ? 'pointer' : undefined }}>
           <Tooltip title={s.hint}>
             <div className={`rail-dot ${s.state === 'done' ? 'done' : s.state === 'current' ? 'current' : s.state === 'blocked' ? 'blocked' : ''} ${s.gate ? 'gate' : ''}`}>
-              <span>{s.state === 'done' ? <CheckOutlined /> : s.state === 'blocked' ? '!' : s.gate ? 'G1' : i + 1}</span>
+              <span>{s.mark && s.state !== 'blocked' ? s.mark : s.state === 'done' ? <CheckOutlined /> : s.state === 'blocked' ? '!' : s.gate ? 'G1' : i + 1}</span>
             </div>
           </Tooltip>
           <div className={`rail-label${s.state === 'current' || s.state === 'blocked' ? ' active' : ''}`}>{s.label}</div>
@@ -53,12 +55,12 @@ export function StatusTag({ status, map }: { status: string; map: Record<string,
   return <Tag color={s.color} style={{ fontWeight: 600, marginInlineEnd: 0 }}>{s.label}</Tag>;
 }
 
-export function PageHeader({ title, desc, extra, eyebrow }: { title: ReactNode; desc?: ReactNode; extra?: ReactNode; eyebrow?: string }) {
+export function PageHeader({ title, desc, extra, eyebrow, cap }: { title: ReactNode; desc?: ReactNode; extra?: ReactNode; eyebrow?: string; cap?: CapId }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
       <div style={{ minWidth: 0 }}>
         {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
-        <h2 className="section-title">{title}</h2>
+        <h2 className="section-title">{title}{cap ? <CapChip cap={cap} style={{ marginLeft: 10, verticalAlign: 4 }} /> : null}</h2>
         {desc ? <p className="section-desc">{desc}</p> : null}
       </div>
       {extra ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{extra}</div> : null}

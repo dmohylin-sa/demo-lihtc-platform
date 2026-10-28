@@ -1,9 +1,10 @@
 // Deal overview: where the deal stands in Phase 1, the health signal and its drivers, next required actions
-// (all parallel ones), blocked steps with causes, and the plain-language summary in three modes.
+// (all parallel ones), blocked steps with causes, and the plain-language summary in three modes. In the Today lens
+// the rail is the earlier 12-stage, 3-gate lifecycle (to be replaced by the tree) and the latest agent run is shown.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Col, Empty, List, Row, Segmented, Space, Tag, Timeline, Tooltip } from 'antd';
-import { ArrowRightOutlined, BranchesOutlined, CheckCircleOutlined, StopOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, BranchesOutlined, CheckCircleOutlined, NodeExpandOutlined, StopOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
 import { useDemo } from '../../store/demoStore';
 import { useDeal, useDealMetrics, useNextActions, useDealFindings } from '../../store/hooks';
 import { TREE_PHASE1 } from '../../data/tree-phase1';
@@ -14,6 +15,14 @@ import { Sensitive } from '../../components/perm';
 import { usd, underwrite } from '../../calc/underwriting';
 import { UW_INPUTS } from '../../data/underwriting';
 import type { SummaryMode } from '../../data/types';
+import { CapChip, TodayGate, useToday } from '../../components/today';
+import { LIFECYCLE_GATES, LIFECYCLE_STAGES, NAMES_NOTE } from '../../data/currentState';
+import { HARLOW_RUNS, agentName } from '../../data/agentRuns';
+
+// Today's earlier lifecycle: 12 stages and 3 gates, names not known to us. The deal's position on it is illustrative.
+const TODAY_RAIL: RailStage[] = LIFECYCLE_STAGES.map((label, i) => ({
+  key: label, label, mark: String(i + 1), state: i < 4 ? 'done' : i === 4 ? 'current' : 'todo', hint: NAMES_NOTE,
+}));
 
 function useTyped(text: string, speed = 9) {
   const [n, setN] = useState(0);
@@ -35,8 +44,11 @@ export default function Overview() {
   const audit = useDemo((s) => s.audit);
   const persona = useDemo((s) => s.persona);
   const uwVersion = useDemo((s) => s.uwVersion[deal.id] ?? 'v2');
-  const [mode, setMode] = useState<SummaryMode>(personaById(persona).summaryMode);
+  const [chosenMode, setMode] = useState<SummaryMode>(personaById(persona).summaryMode);
   useEffect(() => setMode(personaById(persona).summaryMode), [persona]);
+  const today = useToday();
+  // Only the executive summary exists today (agent 015).
+  const mode: SummaryMode = today ? 'Executive' : chosenMode;
 
   const stages: RailStage[] = useMemo(() => {
     const ws = WORKSTREAMS.filter((w) => w.id !== 'X0220');
@@ -78,22 +90,46 @@ export default function Overview() {
   const typed = useTyped(summary);
 
   const dealEvents = audit.filter((e) => e.dealId === deal.id).slice(-6).reverse();
+  const lastRun = HARLOW_RUNS.filter((x) => x.dealId === deal.id).slice(-1)[0];
 
   return (
     <div className="fade-in">
-      <Card title="Phase 1 · Pre-Acquisition" style={{ marginBottom: 16 }} extra={<a onClick={() => navigate(`/deals/${deal.id}/process`)}>Open the 224-node navigator <ArrowRightOutlined /></a>} data-tour="deal-rail">
-        <StageRail stages={stages} onClick={() => navigate(`/deals/${deal.id}/process`)} />
-      </Card>
+      {today ? (
+        <Card
+          title={<span>Lifecycle today · 12 stages, 3 gates <CapChip cap="lifecycle.12stage" style={{ marginLeft: 8 }} /></span>}
+          style={{ marginBottom: 16 }}
+          extra={<span className="muted" style={{ fontSize: 12 }}>{NAMES_NOTE} · position illustrative</span>}
+          data-tour="deal-rail"
+        >
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 520 }}><StageRail stages={TODAY_RAIL} /></div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {LIFECYCLE_GATES.map((g) => (
+                <div key={g} style={{ textAlign: 'center' }}>
+                  <div className="rail-dot gate" style={{ margin: '0 auto' }}><span>{g.slice(-1)}</span></div>
+                  <div className="rail-label">{g}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>Direction: replace with the process tree as the deal model; the 12 stages may stay as a view.</p>
+        </Card>
+      ) : (
+        <Card title="Phase 1 · Pre-Acquisition" style={{ marginBottom: 16 }} extra={<a onClick={() => navigate(`/deals/${deal.id}/process`)}>Open the 224-node navigator <ArrowRightOutlined /></a>} data-tour="deal-rail">
+          <StageRail stages={stages} onClick={() => navigate(`/deals/${deal.id}/process`)} />
+        </Card>
+      )}
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={12} lg={6}><MetricCard label="Steps complete" value={`${m.done} / ${m.applicable}`} sub="applicable Phase 1 steps" icon={<CheckCircleOutlined />} tone="primary" /></Col>
+        <Col xs={12} lg={6}><TodayGate cap="lifecycle.processTree" chip="none"><MetricCard label="Steps complete" value={`${m.done} / ${m.applicable}`} sub="applicable Phase 1 steps" icon={<CheckCircleOutlined />} tone="primary" /></TodayGate></Col>
         <Col xs={12} lg={6}><MetricCard label="Blocking findings" value={m.blocking} sub={`${m.advisory} advisory · ${m.passed} passed`} icon={<StopOutlined />} tone={m.blocking ? 'danger' : 'success'} /></Col>
-        <Col xs={12} lg={6}><MetricCard label="Blocked steps" value={m.blockedNodes} sub="with a stated cause" icon={<WarningOutlined />} tone={m.blockedNodes ? 'danger' : 'neutral'} /></Col>
-        <Col xs={12} lg={6}><MetricCard label="Decisions awaiting" value={m.awaitingDecisions} sub="human decision points" icon={<BranchesOutlined />} /></Col>
+        <Col xs={12} lg={6}><TodayGate cap="lifecycle.processTree" chip="none"><MetricCard label="Blocked steps" value={m.blockedNodes} sub="with a stated cause" icon={<WarningOutlined />} tone={m.blockedNodes ? 'danger' : 'neutral'} /></TodayGate></Col>
+        <Col xs={12} lg={6}><TodayGate cap="lifecycle.decisions" chip="none"><MetricCard label="Decisions awaiting" value={m.awaitingDecisions} sub="human decision points" icon={<BranchesOutlined />} /></TodayGate></Col>
       </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={14}>
+          <TodayGate cap="lifecycle.health">
           <Card title="Next required actions" extra={<span className="muted" style={{ fontSize: 12 }}>All parallel actions are shown</span>} style={{ marginBottom: 16 }} data-tour="next-actions">
             {actions.length ? (
               <List
@@ -116,7 +152,9 @@ export default function Overview() {
               />
             ) : <Empty description="No open actions" />}
           </Card>
+          </TodayGate>
 
+          <TodayGate cap="lifecycle.processTree">
           <Card title="Blocked steps and their causes">
             {blocked.length ? (
               <List
@@ -133,13 +171,38 @@ export default function Overview() {
               />
             ) : <Empty description="Nothing blocked" />}
           </Card>
+          </TodayGate>
         </Col>
 
         <Col xs={24} xl={10}>
+          {today && lastRun ? (
+            <Card
+              title={<span><NodeExpandOutlined /> Latest agent run <CapChip cap="agents.chain" style={{ marginLeft: 6 }} /></span>}
+              style={{ marginBottom: 16 }}
+              extra={<a onClick={() => navigate(`/deals/${deal.id}/runs`)}>All runs <ArrowRightOutlined /></a>}
+            >
+              <div style={{ fontSize: 13 }}><strong className="mono">{lastRun.id}</strong> · {lastRun.trigger}</div>
+              <Space size={6} wrap style={{ marginTop: 8 }}>
+                {lastRun.steps.map((st) => <Tag key={st.agent} color={st.status === 'succeeded' ? 'success' : st.status === 'skipped' ? 'default' : 'gold'}>{st.agent} {agentName(st.agent)}</Tag>)}
+              </Space>
+            </Card>
+          ) : null}
           <Card
             title="Plain-language summary"
             style={{ marginBottom: 16 }}
-            extra={<Segmented size="small" value={mode} onChange={(v) => setMode(v as SummaryMode)} options={['Executive', 'Practitioner', 'Analyst']} />}
+            extra={
+              <Space size={6}>
+              <CapChip cap="summary.executive" />
+              <Segmented
+                size="small"
+                value={mode}
+                onChange={(v) => setMode(v as SummaryMode)}
+                options={today
+                  ? [{ value: 'Executive', label: 'Executive' }, { value: 'Practitioner', label: 'Practitioner', disabled: true }, { value: 'Analyst', label: 'Analyst', disabled: true }]
+                  : ['Executive', 'Practitioner', 'Analyst']}
+              />
+              </Space>
+            }
             data-tour="summary"
           >
             <p className={typed.done ? '' : 'typing-caret'} style={{ fontSize: 14.5, lineHeight: 1.6, minHeight: 120, margin: 0 }}>{typed.shown}</p>
@@ -150,6 +213,7 @@ export default function Overview() {
             </Space>
           </Card>
 
+          <TodayGate cap="lifecycle.health">
           <Card title="Health signal" style={{ marginBottom: 16 }}>
             <Space direction="vertical" style={{ width: '100%' }}>
               <HealthTag value={m.health} />
@@ -160,7 +224,9 @@ export default function Overview() {
               <div className="muted" style={{ fontSize: 12 }}>Rule: ≥ 3 blocking findings or ≥ 5 blocked steps → needs escalation; any blocking item or ≥ 2 decisions awaiting → at risk.</div>
             </Space>
           </Card>
+          </TodayGate>
 
+          <TodayGate cap="audit.trail">
           <Card title="Deal record" extra={<Tooltip title="Versioned deal state: nothing is overwritten; each change is a new version with its actor and basis."><Tag>Version {Math.max(1, audit.filter((e) => e.dealId === deal.id).length)}</Tag></Tooltip>}>
             <div className="kv" style={{ marginBottom: 14 }}>
               <span className="k">Sponsor</span><span>Northbank Housing Partners</span>
@@ -173,6 +239,7 @@ export default function Overview() {
               items={dealEvents.map((e) => ({ children: <span style={{ fontSize: 12.5 }}><strong>{e.action}</strong> · {e.object}<br /><span className="muted">{e.actor} · {e.at}</span></span> }))}
             />
           </Card>
+          </TodayGate>
         </Col>
       </Row>
     </div>

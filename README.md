@@ -31,6 +31,26 @@ npm run preview    # serve the build locally; browsers block module scripts on f
 - **Guided tour** (header, or "Start the guided tour" at sign-in): 18 steps through one deal.
 - **Walkthrough scenarios** (header): the four cases from RFP response section 06.
 - **Persona switcher** (header): Deal Lead, Underwriting Analyst, Closing Coordinator, Principal and Everstead platform admin. Buttons, masked fields and the admin console change with the role.
+- **Release 1 target / Today switch** (header): Today shows the client's current Tier 1 platform as described to us.
+  What exists stays live; what it lacks is dimmed and inert, with a chip that says what exists today. Roles are not
+  enforced in Today, matching the current platform. The guided tour always runs in Release 1 target.
+- **Current platform** (`/current-state`, sidebar): the capability matrix - every capability with its status today
+  (built, partial, to be replaced, not built, not confirmed), the client's direction for it and what Release 1 adds -
+  plus Tier 1 delivery, known issues and the current stack.
+
+## Release 1 target and Today
+
+- One registry drives both the matrix and the Today view: `src/data/currentState.ts` (66 capability ids). The gating
+  components are in `src/components/today.tsx` (`TodayGate`, `TodayPage`, `CapChip`, `GatedButton`, `todayCol`); in
+  Release 1 target they render their children untouched.
+- Added for today's platform, visible in both modes: **Agent runs** (`/deals/:id/runs`, the 002 → 009 → 010 → 015
+  chain with one audit row per agent run, retries and the dead-letter queue), Accept / Override / Flag on findings,
+  the risk register view on Findings, and the six-gate workbook audit tab on Underwriting. Today only: the close-out
+  run replay, the 12-stage / 3-gate lifecycle rail, per-agent eval status and the known issues.
+- The current-state text is written in our own words, without vendor or product names, and its figures are
+  approximate. Illustrative: the run history, the per-agent split, prompt names, repeat-upload counts, the
+  finding-to-gate mapping and risk ratings. The six audit gates and the 12 stages were not named to us, so they stay
+  numbered. Every status is to be confirmed at code review.
 
 Stack: Vite, React 18, TypeScript, Ant Design 5 recoloured to Everstead's identity (plum `#521B3A`, gold
 `#F2E286`, Archivo and Instrument Sans), zustand and recharts. The style base is the `antd-modern-style-demo` skill.

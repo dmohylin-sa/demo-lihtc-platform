@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, App as AntdApp, Button, Card, Col, Input, Progress, Row, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import { CheckCircleFilled, CloseCircleFilled, DownloadOutlined, LinkOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useDemo, verifyChain } from '../store/demoStore';
+import { CapChip, TodayGate, useToday } from './today';
 import type { AuditEvent } from '../data/types';
 
 const short = (h: string) => `${h.slice(0, 8)}…${h.slice(-4)}`;
@@ -29,6 +31,8 @@ export default function AuditWorkspace({ events, showTenant = false, scopeLabel,
   const tamperSeq = useDemo((s) => s.tamperSeq);
   const setTamper = useDemo((s) => s.setTamper);
   const { message } = AntdApp.useApp();
+  const today = useToday();
+  const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [verify, setVerify] = useState<{ running: boolean; at: number; result: ReturnType<typeof verifyChain> | null }>({ running: false, at: 0, result: null });
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,6 +89,7 @@ export default function AuditWorkspace({ events, showTenant = false, scopeLabel,
     <>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} lg={14}>
+          <TodayGate cap="audit.hashChain" fill>
           <Card data-tour="audit-verify" title={<span><SafetyCertificateOutlined /> Verify chain integrity</span>} style={{ height: '100%' }}
             extra={<Button type="primary" onClick={runVerify} loading={verify.running}>Verify chain</Button>}>
             <div style={{ fontSize: 13, color: 'var(--body)', marginBottom: 12 }}>
@@ -111,8 +116,10 @@ export default function AuditWorkspace({ events, showTenant = false, scopeLabel,
               <div className="muted" style={{ fontSize: 13 }}>Not verified in this session yet.</div>
             )}
           </Card>
+          </TodayGate>
         </Col>
         <Col xs={24} lg={10}>
+          <TodayGate cap="audit.export" fill>
           <Card title="Simulate tampering" style={{ height: '100%' }}>
             <Space align="start" size={12}>
               <Switch checked={tamperSeq !== null} onChange={toggleTamper} disabled={!tamperTarget} />
@@ -126,13 +133,19 @@ export default function AuditWorkspace({ events, showTenant = false, scopeLabel,
               <Button icon={<DownloadOutlined />} onClick={exportJson}>Export JSON</Button>
             </div>
           </Card>
+          </TodayGate>
         </Col>
       </Row>
 
       <Card
         styles={{ body: { padding: 0 } }}
-        title={<span>{scopeLabel} <span className="muted" style={{ fontWeight: 500 }}>· {rows.length} events · append-only</span></span>}
-        extra={<Input.Search allowClear placeholder="Filter by actor, action or object" onChange={(e) => setQ(e.target.value)} style={{ width: 280 }} />}
+        title={<span>{scopeLabel} <span className="muted" style={{ fontWeight: 500 }}>· {rows.length} events · append-only</span> <CapChip cap="audit.trail" style={{ marginLeft: 6 }} /></span>}
+        extra={
+          <Space>
+            {today ? <Button type="link" onClick={() => navigate('/deals/harlow/runs')}>Per-run audit rows → Agent runs</Button> : null}
+            <Input.Search allowClear placeholder="Filter by actor, action or object" onChange={(e) => setQ(e.target.value)} style={{ width: 280 }} />
+          </Space>
+        }
       >
         <Table<AuditEvent>
           rowKey="seq"

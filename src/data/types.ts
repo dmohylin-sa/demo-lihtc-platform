@@ -185,6 +185,17 @@ export interface Finding {
   calcKey?: string;
 }
 
+export type ReviewAction = 'accepted' | 'overridden' | 'flagged';
+
+// A reviewer's action on a finding. Kept apart from Finding.status so metrics and scenarios are unaffected.
+export interface FindingReview {
+  action: ReviewAction;
+  note?: string;
+  actor: string;
+  role: string;
+  at: string;
+}
+
 export interface DecisionDef {
   id: string; // D1-01
   nodeId: string;

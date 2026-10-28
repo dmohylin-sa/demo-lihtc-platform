@@ -10,6 +10,7 @@ import { NEW_RULE_T26, RULE_PACK_2026_2, RULE_PACK_VERSIONS } from '../../data/o
 import { agentName, HARD_RULE_NODES } from '../../data/registry';
 import { TREE_PHASE1 } from '../../data/tree-phase1';
 import { PageHeader, RuleTypeBadge } from '../../components/ui';
+import { CapChip, TodayGate } from '../../components/today';
 import { PermButton } from '../../components/perm';
 import type { Rule, RuleStatus } from '../../data/types';
 
@@ -85,11 +86,13 @@ export default function RulePacks() {
       <PageHeader
         eyebrow="Admin console · Everstead staff"
         title="Rule packs"
+        cap="rules.table"
         desc="Everstead staff create and update rules and test them against a sample deal without a code change or redeployment. Hard rules are encoded once; program rules switch on per deal. Conflicts between rules are flagged, never resolved silently."
       />
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} xl={14}>
+          <TodayGate cap="rules.engine" fill>
           <Card title="NY HCR 9% LIHTC · versions" style={{ height: '100%' }}>
             <Table
               rowKey="version"
@@ -117,8 +120,10 @@ export default function RulePacks() {
               </Space>
             </div>
           </Card>
+          </TodayGate>
         </Col>
         <Col xs={24} xl={10}>
+          <TodayGate cap="rules.engine" chip="none" fill>
           <Card title={<span><span className="eyebrow" style={{ display: 'block' }}>Draft version</span>{RULE_PACK_2026_2.version} · {RULE_PACK_2026_2.title}</span>} data-tour="rule-draft" style={{ height: '100%' }}>
             <Steps
               size="small"
@@ -173,9 +178,11 @@ export default function RulePacks() {
               </Space>
             )}
           </Card>
+          </TodayGate>
         </Col>
       </Row>
 
+      <TodayGate cap="rules.engine" chip="none">
       <Card style={{ marginBottom: 16 }} title={<span><WarningFilled style={{ color: '#D48806', marginRight: 8 }} />Conflicts flagged, never resolved silently</span>}>
         <Row gutter={[16, 12]} align="middle">
           <Col xs={24} lg={8}>
@@ -199,7 +206,9 @@ export default function RulePacks() {
           </Col>
         </Row>
       </Card>
+      </TodayGate>
 
+      <TodayGate cap="rules.table">
       <Card data-tour="rule-table" styles={{ body: { paddingTop: 8 } }}>
         <Tabs
           items={[
@@ -261,9 +270,9 @@ export default function RulePacks() {
             },
             {
               key: 'hard',
-              label: `Hard rules (encoded once) · ${hardRules.length} in Phase 1`,
+              label: <span>Hard rules (encoded once) · {hardRules.length} in Phase 1 <CapChip cap="rules.engine" style={{ marginLeft: 4 }} /></span>,
               children: (
-                <>
+                <TodayGate cap="rules.engine" chip="none">
                   <Typography.Paragraph type="secondary" style={{ fontSize: 13 }}>
                     Hard rules are binding by statute, code or regulation regardless of funding. They are encoded once, with citation and effective date, and watched for change. These are the Phase 1 hard-rule nodes in tree v3.6.1.
                   </Typography.Paragraph>
@@ -280,12 +289,13 @@ export default function RulePacks() {
                       { title: 'Owning agent', dataIndex: 'primary', width: 220, render: (v: string) => <span style={{ fontSize: 12.5 }}><span className="mono muted">{v}</span> {agentName(v)}</span> },
                     ]}
                   />
-                </>
+                </TodayGate>
               ),
             },
           ]}
         />
       </Card>
+      </TodayGate>
     </div>
   );
 }

@@ -9,6 +9,14 @@ import {
 } from '@ant-design/icons';
 import { useDemo } from '../store/demoStore';
 import { ACCEPTANCE_TESTS, type AcceptanceTest } from '../data/ops';
+import { CapChip, useToday } from '../components/today';
+import type { CapId } from '../data/currentState';
+
+// What each acceptance test needs that today's platform does or does not have.
+const TODAY_CAP: Record<string, CapId> = {
+  'AT-1': 'agents.repeatability', 'AT-2': 'intake.upload', 'AT-3': 'findings.pdfPages', 'AT-4': 'testing.evals',
+  'AT-5': 'change.supersede', 'AT-6': 'access.rbac', 'AT-7': 'review.beforeFinal',
+};
 
 const ICONS: Record<string, JSX.Element> = {
   'AT-1': <RedoOutlined />,
@@ -30,6 +38,7 @@ const LATER = [
 
 export default function Acceptance() {
   const navigate = useNavigate();
+  const today = useToday();
   const harlowReport = useDemo((s) => s.report.harlow);
   const tests = useMemo<AcceptanceTest[]>(() => ACCEPTANCE_TESTS.map((t) =>
     t.id === 'AT-7' && harlowReport?.status === 'signed'
@@ -43,6 +52,11 @@ export default function Acceptance() {
         <span className="eyebrow">Release 1 acceptance</span>
         <h1>Validated, not demonstrated</h1>
         <div className="sub">Release 1 is accepted on real deal files Everstead supplies, against agreed tolerances. Each test below links to where its evidence lives. {passed} of {tests.length} pass in this session.</div>
+        {today ? (
+          <div className="sub" style={{ marginTop: 8 }}>
+            Today view: each card shows how far the current platform is from the test. <a style={{ color: 'var(--gold)' }} onClick={() => navigate('/current-state')}>Open the capability matrix</a>
+          </div>
+        ) : null}
         <div className="rule" />
       </div>
 
@@ -54,7 +68,10 @@ export default function Acceptance() {
               <Card hoverable onClick={() => navigate(t.route)} style={{ height: '100%', borderTop: `3px solid ${ok ? '#389E0D' : 'var(--gold)'}` }} styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%' } }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                   <span className="icon-chip" style={{ background: ok ? '#F0F8F2' : 'var(--gold-fill)', color: ok ? '#389E0D' : 'var(--plum)' }}>{ICONS[t.id]}</span>
-                  <Tag color={ok ? 'success' : t.status === 'In progress' ? 'gold' : 'default'} icon={ok ? <CheckCircleFilled /> : <ClockCircleFilled />}>{t.status}</Tag>
+                  <Space size={4} wrap style={{ justifyContent: 'flex-end' }}>
+                    {today ? <span onClick={(e) => e.stopPropagation()}><CapChip cap={TODAY_CAP[t.id]} /></span> : null}
+                    <Tag color={ok ? 'success' : t.status === 'In progress' ? 'gold' : 'default'} icon={ok ? <CheckCircleFilled /> : <ClockCircleFilled />}>{t.status}</Tag>
+                  </Space>
                 </div>
                 <span className="eyebrow" style={{ marginTop: 12 }}>{t.id}</span>
                 <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 18, margin: '2px 0 6px' }}>{t.name}</div>

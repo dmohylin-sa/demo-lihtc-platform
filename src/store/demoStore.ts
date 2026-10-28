@@ -2,7 +2,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
-  AuditEvent, Deal, DecisionState, ExtractField, Finding, GateConditionState, NodeState, PersonaId, ProjectType,
+  AuditEvent, Deal, DecisionState, ExtractField, Finding, FindingReview, GateConditionState, NodeState, PersonaId, ProjectType,
+  ReviewAction,
 } from '../data/types';
 import { PERMISSIONS, personaById, type Capability } from '../data/people';
 import { SEED_DEALS } from '../data/deals';
@@ -14,6 +15,8 @@ import { sha256 } from '../calc/sha256';
 import { RULE_PACK_2026_2 } from '../data/ops';
 
 export type ScenarioId = 's1' | 's2' | 's3' | 's4';
+// 'target' shows Release 1; 'today' is a lens over the same data showing the platform as it exists now.
+export type ViewMode = 'target' | 'today';
 
 export interface ChangeRow {
   label: string;
@@ -72,6 +75,8 @@ interface DemoData {
   whatChanged: WhatChanged | null;
   tourOpen: boolean;
   tourStep: number;
+  mode: ViewMode;
+  findingReviews: Record<string, FindingReview[]>;
 }
 
 interface DemoActions {
@@ -95,6 +100,8 @@ interface DemoActions {
   setTamper: (seq: number | null) => void;
   closeWhatChanged: () => void;
   setTour: (open: boolean, step?: number) => void;
+  setMode: (m: ViewMode) => void;
+  reviewFinding: (findingId: string, action: ReviewAction, note?: string) => void;
   logEvent: (e: { action: string; object: string; basis?: string; dealId?: string }) => void;
   resetDemo: () => void;
 }
@@ -200,8 +207,12 @@ function initialData(): DemoData {
     whatChanged: null,
     tourOpen: false,
     tourStep: 0,
+    mode: 'target',
+    findingReviews: {},
   };
 }
+
+const REVIEW_LABEL: Record<ReviewAction, string> = { accepted: 'Finding accepted', overridden: 'Finding overridden', flagged: 'Finding flagged' };
 
 // ------------------------------------------------------------------------------------------------
 // "What changed" views of the four walkthrough scenarios. They are built from constants, so a scenario
@@ -512,9 +523,19 @@ export const useDemo = create<DemoState>()(
 
         setTamper: (seq) => set({ tamperSeq: seq }),
         closeWhatChanged: () => set({ whatChanged: null }),
-        setTour: (open, step) => set((s) => ({ tourOpen: open, tourStep: step ?? s.tourStep })),
+        // The guided tour walks Release 1, so opening it leaves the Today lens.
+        setTour: (open, step) => set((s) => ({ tourOpen: open, tourStep: step ?? s.tourStep, ...(open ? { mode: 'target' as const } : {}) })),
+        // A viewing lens, not a platform action: not written to the audit chain.
+        setMode: (m) => set((s) => ({ mode: m, ...(m === 'today' && s.tourOpen ? { tourOpen: false } : {}) })),
+        reviewFinding: (findingId, action, note) => {
+          const f = get().findings.find((x) => x.id === findingId);
+          if (!f) return;
+          const a = who();
+          set((s) => ({ findingReviews: { ...s.findingReviews, [findingId]: [...(s.findingReviews[findingId] ?? []), { action, note, actor: a.actor, role: a.role, at: nowIso() }] } }));
+          log(REVIEW_LABEL[action], `${f.id} · ${f.title}`, note || 'Accepted as stated', f.dealId);
+        },
         logEvent: ({ action, object, basis, dealId }) => log(action, object, basis, dealId),
-        resetDemo: () => set({ ...initialData(), loggedIn: true, persona: get().persona }),
+        resetDemo: () => set({ ...initialData(), loggedIn: true, persona: get().persona, mode: get().mode }),
       };
     },
     {
@@ -532,8 +553,9 @@ export const useDemo = create<DemoState>()(
 // ------------------------------------------------------------------------------------------------
 // Selectors and helpers
 // ------------------------------------------------------------------------------------------------
-export const can = (persona: PersonaId, cap: Capability) => PERMISSIONS[persona].includes(cap);
-export const useCan = (cap: Capability) => useDemo((s) => can(s.persona, cap));
+// In the Today lens roles are not enforced: on today's platform any allowlisted user can reach everything.
+export const can = (persona: PersonaId, cap: Capability, mode: ViewMode = 'target') => mode === 'today' || PERMISSIONS[persona].includes(cap);
+export const useCan = (cap: Capability) => useDemo((s) => can(s.persona, cap, s.mode));
 
 export function verifyChain(events: AuditEvent[], tamperSeq: number | null): { ok: boolean; brokenAt: number | null } {
   let prev = GENESIS;

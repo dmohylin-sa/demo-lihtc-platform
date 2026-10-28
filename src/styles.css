@@ -248,6 +248,48 @@ sup.cite-sup { color: var(--plum); font-weight: 700; cursor: pointer; padding: 0
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 .typing-caret::after { content: "▍"; animation: pulse 1s infinite; color: var(--plum); margin-left: 1px; }
 
+/* ---- Today lens: the platform as it exists now (components/today.tsx) ---- */
+.header-mode.ant-segmented { background: rgba(255,255,255,0.1); padding: 2px; flex: none; }
+.header-mode .ant-segmented-item { color: rgba(255,255,255,0.82); font-weight: 600; }
+.header-mode .ant-segmented-item:hover:not(.ant-segmented-item-selected) { color: #fff; }
+.header-mode .ant-segmented-item-selected, .header-mode .ant-segmented-thumb { background: var(--gold); color: var(--ink); }
+.header-mode .ant-segmented-item-selected, .header-mode .ant-segmented-item-selected .ant-segmented-item-label { color: var(--ink) !important; }
+.env-badge.prod { background: #fff; color: var(--plum); cursor: help; }
+
+.today-chip {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; line-height: 18px;
+  border-radius: 999px; padding: 0 8px; white-space: nowrap; cursor: help; border: 1px solid transparent;
+  font-family: var(--font-body); letter-spacing: 0; text-transform: none; vertical-align: middle;
+}
+.today-chip--built { background: #E7F1EA; color: #1F5B34; border-color: #B9D8C2; }
+.today-chip--partial { background: var(--gold-fill); color: #6B5200; border-color: #E6CF6E; }
+.today-chip--replace { background: var(--plum-tint); color: var(--plum); border-color: var(--plum-tint-3); }
+.today-chip--notBuilt { background: #EEF0F3; color: #374151; border-color: #B6BCC6; }
+.today-chip--notDescribed { background: #F6F7F9; color: #4B5563; border: 1px dashed #A9B0BB; }
+
+.today-dot { display: inline-block; width: 7px; height: 7px; border-radius: 9px; flex: none; }
+.today-dot--built { background: #389E0D; }
+.today-dot--partial { background: #D4A106; }
+.today-dot--replace { background: var(--plum); }
+.today-dot--notBuilt, .today-dot--notDescribed { background: #B6BCC6; }
+.menu-today-dim { opacity: 0.6; }
+
+.today-gate { position: relative; }
+.today-gate--fill, .today-gate--fill > .today-gate__body { height: 100%; }
+.today-gate__chip { position: absolute; top: -10px; right: 14px; z-index: 3; }
+.today-gate--dim > .today-gate__body { opacity: 0.5; filter: grayscale(0.6); cursor: not-allowed; }
+.today-gate--dim > .today-gate__body :is(.ant-btn, .cite, sup.cite-sup, .ant-table-row, .ant-list-item, .ant-select, .ant-slider, .ant-upload) { cursor: not-allowed !important; }
+.today-col-dim { opacity: 0.45; }
+.today-row-dim > td { opacity: 0.45; }
+
+.today-notice { border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border); background: #F6F7F9; }
+.today-notice--partial { background: var(--gold-fill); border-color: #E6CF6E; }
+.today-notice--replace { background: var(--plum-tint); border-color: var(--plum-tint-3); }
+.today-notice--built { background: #F0F8F2; border-color: #B9D8C2; }
+.today-notice__head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
+
+.cs-row-focus > td { background: var(--gold-fill) !important; transition: background 0.6s ease; }
+
 .login-bg {
   min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr;
   background: var(--page);
@@ -260,11 +302,13 @@ sup.cite-sup { color: var(--plum); font-weight: 700; cursor: pointer; padding: 0
 .login-art .slab { position: absolute; background: rgba(255,255,255,0.055); transform: skewX(-22deg); }
 @media (max-width: 960px) { .login-bg { grid-template-columns: 1fr; } .login-art { display: none; } }
 
-@media (max-width: 1360px) { .header-sub { display: none; } }
+@media (max-width: 1600px) { .header-sub { display: none; } }
 
 /* ---- Print: readiness report export ---- */
 @media print {
   .no-print, .ant-layout-sider, .app-header, .app-footer, .ant-tour, .ant-float-btn { display: none !important; }
+  .today-chip, .today-notice, .today-gate__chip { display: none !important; }
+  .today-gate--dim > .today-gate__body { opacity: 1; filter: none; }
   .ant-layout, .ant-layout-content { background: #fff !important; padding: 0 !important; margin: 0 !important; }
   .report-doc { border: 0; box-shadow: none; padding: 0; }
   body { background: #fff; }

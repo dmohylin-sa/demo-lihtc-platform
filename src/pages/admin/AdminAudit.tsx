@@ -3,6 +3,7 @@ import { Alert } from 'antd';
 import { useDemo } from '../../store/demoStore';
 import { PageHeader } from '../../components/ui';
 import AuditWorkspace from '../../components/AuditTable';
+import { TodayNotice } from '../../components/today';
 
 export default function AdminAudit() {
   const audit = useDemo((s) => s.audit);
@@ -13,6 +14,7 @@ export default function AdminAudit() {
         title="Audit trail - all tenants"
         desc="Platform-wide log: sign-ins, version publishes, deal actions and decisions across every tenant, hash-chained and retrievable."
       />
+      <TodayNotice cap="tenancy.isolation" />
       <Alert
         type="info"
         showIcon

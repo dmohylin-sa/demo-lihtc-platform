@@ -1,8 +1,9 @@
 // Findings & risks (row 11): HCR threshold checks and risk detection, each cited to rule, section and program
-// year and to document, page and passage; labelled by knowledge layer; full trace in a drawer.
+// year and to document, page and passage; labelled by knowledge layer; full trace in a drawer. Reviewers accept,
+// override or flag each finding; the risk register view lists the risk agent's (010) entries.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Card, Col, Divider, Drawer, Empty, Row, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Col, Divider, Drawer, Empty, Row, Segmented, Select, Space, Table, Tag, Typography } from 'antd';
 import { AlertOutlined, CheckCircleOutlined, ExclamationCircleOutlined, InfoCircleOutlined, NodeIndexOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useDeal, useDealFindings } from '../../store/hooks';
 import { RULES_HCR9 } from '../../data/rules-hcr9';
@@ -12,6 +13,9 @@ import { BasisLabel, FindingStatusTag, MetricCard, PageHeader, SeverityTag } fro
 import { CitationChip, findPassage, citeText } from '../../components/viewer';
 import { getDoc, docLabel } from '../../store/selectors';
 import type { Basis, Finding, FindingStatus, Rule, Severity } from '../../data/types';
+import { CapChip, ExceptionTag, TodayGate, todayCol, useToday } from '../../components/today';
+import { ReviewPanel, ReviewTag } from '../../components/FindingReview';
+import RiskRegister from './RiskRegister';
 
 const ALL_RULES: Rule[] = [...RULES_HCR9, NEW_RULE_T26];
 const METHOD: Record<Finding['method'], { label: string; color: string }> = {
@@ -23,6 +27,7 @@ const METHOD: Record<Finding['method'], { label: string; color: string }> = {
 function FindingDrawer({ f, onClose }: { f: Finding | null; onClose: () => void }) {
   const navigate = useNavigate();
   const deal = useDeal();
+  const today = useToday();
   if (!f) return <Drawer open={false} onClose={onClose} />;
   const rules = f.ruleIds.map((id) => ALL_RULES.find((r) => r.id === id)).filter(Boolean) as Rule[];
   const node = f.nodeId ? TREE_PHASE1.find((n) => n.id === f.nodeId) : undefined;
@@ -39,6 +44,7 @@ function FindingDrawer({ f, onClose }: { f: Finding | null; onClose: () => void 
           <Space size={6} wrap>
             <SeverityTag value={f.severity} />
             <FindingStatusTag value={f.status} />
+            <ReviewTag findingId={f.id} />
             <Tag color={METHOD[f.method].color}>{METHOD[f.method].label}</Tag>
             {f.basis.map((b) => <BasisLabel key={b} value={b} />)}
           </Space>
@@ -53,7 +59,10 @@ function FindingDrawer({ f, onClose }: { f: Finding | null; onClose: () => void 
         <Alert type="error" showIcon style={{ marginBottom: 12 }} message="Rests only on user-entered or external sources → routed to human review" description="Source ranking: governing document > executed project document > user-entered data > external sources." />
       ) : null}
 
-      <Divider orientation="left" plain><strong>Rule basis</strong></Divider>
+      <Divider orientation="left" plain><strong>Review</strong></Divider>
+      <ReviewPanel f={f} />
+
+      <Divider orientation="left" plain><strong>Rule basis</strong> <CapChip cap="findings.ruleCitations" style={{ marginLeft: 6 }} /></Divider>
       {rules.length ? (
         <Table
           size="small"
@@ -74,6 +83,11 @@ function FindingDrawer({ f, onClose }: { f: Finding | null; onClose: () => void 
       <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Cited as: {f.citation}</p>
 
       <Divider orientation="left" plain><strong>Evidence</strong></Divider>
+      {today && f.sources.some((c) => c.page) ? (
+        <div className="callout-gold" style={{ fontSize: 12.5, marginBottom: 10 }}>
+          <CapChip cap="findings.pdfPages" /> Today, references to workbooks carry sheet and cell; references to PDFs carry no page number.
+        </div>
+      ) : null}
       {f.sources.length ? (
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           {f.sources.map((c, i) => {
@@ -95,12 +109,14 @@ function FindingDrawer({ f, onClose }: { f: Finding | null; onClose: () => void 
       )}
 
       <Divider orientation="left" plain><strong>Process tree</strong></Divider>
-      {node ? (
-        <div className="panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span><span className="mono muted">{node.id}</span> <strong>{node.name}</strong><br /><span className="muted" style={{ fontSize: 12 }}>{node.nodeType} · rule type {node.ruleType} · step class {node.stepClass} · gate {node.gate}</span></span>
-          <a onClick={() => { onClose(); navigate(`/deals/${deal.id}/process?node=${node.id}`); }}><NodeIndexOutlined /> Open node</a>
-        </div>
-      ) : <p className="muted">Not linked to a node.</p>}
+      <TodayGate cap="lifecycle.processTree">
+        {node ? (
+          <div className="panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span><span className="mono muted">{node.id}</span> <strong>{node.name}</strong><br /><span className="muted" style={{ fontSize: 12 }}>{node.nodeType} · rule type {node.ruleType} · step class {node.stepClass} · gate {node.gate}</span></span>
+            <a onClick={() => { onClose(); navigate(`/deals/${deal.id}/process?node=${node.id}`); }}><NodeIndexOutlined /> Open node</a>
+          </div>
+        ) : <p className="muted">Not linked to a node.</p>}
+      </TodayGate>
 
       <Divider orientation="left" plain><strong>Recommended action</strong></Divider>
       <div className="callout-gold">
@@ -123,6 +139,9 @@ export default function Findings() {
   const [method, setMethod] = useState<Finding['method'] | 'all'>('all');
   const [basis, setBasis] = useState<Basis | 'all'>('all');
   const [openId, setOpenId] = useState<string | null>(params.get('f'));
+  const today = useToday();
+  const view = params.get('view') === 'risks' ? 'risks' : 'findings';
+  const setView = (v: string) => { if (v === 'risks') params.set('view', 'risks'); else params.delete('view'); setParams(params, { replace: true }); };
 
   useEffect(() => { const f = params.get('f'); if (f) setOpenId(f); }, [params]);
 
@@ -146,8 +165,25 @@ export default function Findings() {
       <PageHeader
         eyebrow="Row 11 · HCR threshold checks and risk detection"
         title="Findings & risks"
+        cap="findings.list"
         desc="Every finding cites the rule, section and program year it rests on, and the document, page and passage that triggered it."
+        extra={
+          <Segmented
+            value={view}
+            onChange={(v) => setView(v as string)}
+            options={[{ value: 'findings', label: 'Findings' }, { value: 'risks', label: 'Risk register · agent 010' }]}
+          />
+        }
       />
+      {today ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={<Space wrap><span>Repeat uploads of the same document returned different numbers of findings.</span><ExceptionTag id="E2" /></Space>}
+          description="Today the same document can produce a different set of findings on each upload. Fixing this comes first."
+        />
+      ) : null}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} lg={6}><MetricCard label="Blocking" value={counts.blocking} sub="must clear before readiness" icon={<AlertOutlined />} tone={counts.blocking ? 'danger' : 'success'} /></Col>
         <Col xs={12} lg={6}><MetricCard label="Advisory" value={counts.advisory} sub="practitioner judgment" icon={<ExclamationCircleOutlined />} /></Col>
@@ -155,6 +191,11 @@ export default function Findings() {
         <Col xs={12} lg={6}><MetricCard label="Passed or resolved" value={counts.passed} sub="threshold checks met" icon={<CheckCircleOutlined />} tone="success" /></Col>
       </Row>
 
+      {view === 'risks' ? (
+        <Card title={<Space><span>Risk register</span><CapChip cap="risk.register" /></Space>} extra={<Tag>Likelihood and impact illustrative</Tag>} styles={{ body: { padding: 0 } }}>
+          {findings.length ? <RiskRegister findings={findings} onOpen={setOpenId} /> : <Empty style={{ padding: 40 }} description="No risks yet - the risk agent runs once the deal package is processed." />}
+        </Card>
+      ) : (
       <Card
         data-tour="findings-table"
         title="Findings"
@@ -188,7 +229,7 @@ export default function Findings() {
               },
               { title: 'Severity', dataIndex: 'severity', width: 130, render: (v: Severity) => <SeverityTag value={v} /> },
               {
-                title: 'Rule · section · program year', width: 260, render: (_, f) => (
+                ...todayCol('Rule · section · program year', 'findings.ruleCitations', today), width: 260, render: (_, f) => (
                   <span>
                     {f.ruleIds.length ? <Space size={4} wrap>{f.ruleIds.map((r) => <Tag key={r} color="purple" style={{ margin: 0 }}>{r}</Tag>)}</Space> : null}
                     <div className="muted" style={{ fontSize: 11.5, marginTop: 3 }}>{f.citation}</div>
@@ -196,18 +237,21 @@ export default function Findings() {
                 ),
               },
               { title: 'Method', dataIndex: 'method', width: 120, render: (v: Finding['method']) => <Tag color={METHOD[v].color}>{METHOD[v].label}</Tag> },
-              { title: 'Sources', width: 150, render: (_, f) => <Space size={4} wrap>{f.sources.slice(0, 3).map((c, i) => <CitationChip key={i} c={c} short />)}</Space> },
+              { title: today ? <span>Sources <CapChip cap="findings.pdfPages" label="No PDF page no." /></span> : 'Sources', width: 150, render: (_, f) => <Space size={4} wrap>{f.sources.slice(0, 3).map((c, i) => <CitationChip key={i} c={c} short />)}</Space> },
               { title: 'Owner', dataIndex: 'owner', width: 140, render: (v) => <span style={{ fontSize: 12.5 }}>{v}</span> },
-              { title: 'Status', dataIndex: 'status', width: 130, render: (v: FindingStatus) => <FindingStatusTag value={v} /> },
+              { title: 'Status', dataIndex: 'status', width: 130, render: (v: FindingStatus, f) => <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}><FindingStatusTag value={v} /><ReviewTag findingId={f.id} /></span> },
             ]}
           />
         ) : (
           <Empty style={{ padding: 40 }} description="No findings yet - rule checks run once the deal package is processed." />
         )}
       </Card>
-      <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
-        Knowledge layers stay apart: deal evidence, Everstead's encoded rules and general information are labelled on every finding. General information never feeds a decision until a person accepts the source.
-      </p>
+      )}
+      <TodayGate cap="findings.knowledgeLayers" chip="none">
+        <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+          Knowledge layers stay apart: deal evidence, Everstead's encoded rules and general information are labelled on every finding. General information never feeds a decision until a person accepts the source.
+        </p>
+      </TodayGate>
       <FindingDrawer f={selected} onClose={close} />
     </div>
   );

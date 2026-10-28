@@ -103,6 +103,7 @@ export const TENANT_USERS = [
 export type Capability =
   | 'upload'
   | 'reviewExtraction'
+  | 'reviewFindings'
   | 'editUnderwriting'
   | 'recordDecision'
   | 'verifyGate'
@@ -117,6 +118,7 @@ export type Capability =
 export const CAPABILITY_LABELS: Record<Capability, { label: string; level: 'Deal' | 'Document' | 'Field' | 'Platform' }> = {
   upload: { label: 'Upload and supersede documents', level: 'Document' },
   reviewExtraction: { label: 'Accept or correct extracted fields', level: 'Field' },
+  reviewFindings: { label: 'Accept, override or flag a finding', level: 'Deal' },
   editUnderwriting: { label: 'Edit underwriting inputs', level: 'Deal' },
   recordDecision: { label: 'Record a decision (owner role only)', level: 'Deal' },
   verifyGate: { label: 'Verify gate conditions (first pass)', level: 'Deal' },
@@ -130,9 +132,9 @@ export const CAPABILITY_LABELS: Record<Capability, { label: string; level: 'Deal
 };
 
 export const PERMISSIONS: Record<PersonaId, Capability[]> = {
-  dealLead: ['upload', 'reviewExtraction', 'recordDecision', 'viewSensitiveFields', 'viewAudit', 'exportData', 'runScenarios', 'signReport'],
-  analyst: ['upload', 'reviewExtraction', 'editUnderwriting', 'recordDecision', 'viewSensitiveFields', 'viewAudit', 'runScenarios', 'signReport'],
-  closing: ['upload', 'reviewExtraction', 'verifyGate', 'viewAudit', 'runScenarios'],
-  principal: ['recordDecision', 'authorizeGate', 'viewSensitiveFields', 'viewAudit', 'exportData', 'runScenarios', 'signReport'],
+  dealLead: ['upload', 'reviewExtraction', 'reviewFindings', 'recordDecision', 'viewSensitiveFields', 'viewAudit', 'exportData', 'runScenarios', 'signReport'],
+  analyst: ['upload', 'reviewExtraction', 'reviewFindings', 'editUnderwriting', 'recordDecision', 'viewSensitiveFields', 'viewAudit', 'runScenarios', 'signReport'],
+  closing: ['upload', 'reviewExtraction', 'reviewFindings', 'verifyGate', 'viewAudit', 'runScenarios'],
+  principal: ['reviewFindings', 'recordDecision', 'authorizeGate', 'viewSensitiveFields', 'viewAudit', 'exportData', 'runScenarios', 'signReport'],
   admin: ['admin', 'viewAudit', 'exportData', 'runScenarios'],
 };

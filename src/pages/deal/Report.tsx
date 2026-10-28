@@ -14,6 +14,7 @@ import { underwrite, usd, CALC_ENGINE_VERSION } from '../../calc/underwriting';
 import { PageHeader, SeverityTag } from '../../components/ui';
 import { useViewer, findPassage, citeText } from '../../components/viewer';
 import { PermButton } from '../../components/perm';
+import { CapChip, GatedButton, TodayGate, TodayNotice } from '../../components/today';
 import { getDoc, docLabel } from '../../store/selectors';
 import type { Citation, Finding } from '../../data/types';
 
@@ -205,11 +206,12 @@ export default function Report() {
           desc="Complete, outstanding, conflicts and recommended next actions with basis. Every finding traced to document, page and passage."
           extra={
             <>
-              <Button icon={<FilePdfOutlined />} onClick={exportPdf}>Export PDF</Button>
-              <Button icon={<FileWordOutlined />} onClick={exportWord}>Export Word</Button>
+              <GatedButton feature="report.export" icon={<FilePdfOutlined />} onClick={exportPdf}>Export PDF</GatedButton>
+              <GatedButton feature="report.export" icon={<FileWordOutlined />} onClick={exportWord}>Export Word</GatedButton>
             </>
           }
         />
+        <TodayNotice cap="report.readiness" also={['summary.executive', 'review.beforeFinal']} />
       </div>
 
       <Row gutter={[18, 18]}>
@@ -234,7 +236,7 @@ export default function Report() {
               <span className="k">Calculations</span><span>{CALC_ENGINE_VERSION}</span>
             </div>
 
-            <h2>Plain-language summary</h2>
+            <h2>Plain-language summary <CapChip cap="summary.executive" style={{ marginLeft: 8, verticalAlign: 2 }} /></h2>
             <Typography.Paragraph
               style={{ fontSize: 14.5, lineHeight: 1.65 }}
               editable={!signed && canSign ? { onChange: (t) => editReport(deal.id, 'summary', t), tooltip: 'Edit the summary - your edit is recorded as a practitioner change' } : false}
@@ -243,6 +245,7 @@ export default function Report() {
             </Typography.Paragraph>
             {report.edits.summary ? <div className="muted" style={{ fontSize: 11.5, marginTop: -8 }}>Edited by a practitioner.</div> : null}
 
+            <TodayGate cap="report.readiness">
             <h2>Complete</h2>
             {renderItems(sections.complete, 'Nothing complete yet.')}
             <h2>Outstanding</h2>
@@ -251,6 +254,7 @@ export default function Report() {
             {renderItems(sections.conflicts, 'No conflicts between sources.')}
             <h2>Recommended next actions with basis</h2>
             {renderItems(sections.next, 'No open actions.')}
+            </TodayGate>
 
             <Divider />
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>
@@ -267,6 +271,7 @@ export default function Report() {
 
         <Col xs={24} xl={8} className="no-print">
           <div style={{ position: 'sticky', top: 84 }}>
+            <TodayGate cap="review.beforeFinal">
             <Card title="Quality gate" data-tour="report-signoff">
               <List
                 size="small"
@@ -332,10 +337,13 @@ export default function Report() {
                 </>
               )}
             </Card>
+            </TodayGate>
+            <TodayGate cap="review.beforeFinal" chip="none">
             <Card style={{ marginTop: 14 }} styles={{ body: { padding: 16 } }}>
               <div className="metric-label">Acceptance test 7</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>A practitioner signs off the readiness report without material rewrite. Edits so far: <strong>{Object.keys(report.edits).length}</strong>.</div>
             </Card>
+            </TodayGate>
           </div>
         </Col>
       </Row>

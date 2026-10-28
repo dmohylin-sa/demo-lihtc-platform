@@ -7,6 +7,7 @@ import { useDeal, useDealMetrics } from '../store/hooks';
 import { PROJECT_TYPES } from '../data/deals';
 import { HealthTag } from '../components/ui';
 import { PermButton } from '../components/perm';
+import { TodayGate } from '../components/today';
 
 export default function DealLayout() {
   const deal = useDeal();
@@ -23,7 +24,7 @@ export default function DealLayout() {
             <span className="eyebrow">Deal record · {deal.program} · {deal.agency}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 2 }}>
               <h1 style={{ margin: 0, fontSize: 26, fontFamily: 'var(--font-head)' }}>{deal.name}</h1>
-              <HealthTag value={m.health} />
+              <TodayGate cap="lifecycle.health" chip="none"><HealthTag value={m.health} /></TodayGate>
             </div>
             <Space size={6} wrap style={{ marginTop: 8 }}>
               <span style={{ color: 'var(--secondary)', fontSize: 13 }}><EnvironmentOutlined /> {deal.location}</span>
@@ -33,6 +34,7 @@ export default function DealLayout() {
             </Space>
           </div>
           <Space size={8} direction="vertical" style={{ alignItems: 'flex-end' }}>
+            <TodayGate cap="rules.engine" chip="none">
             <Space size={6}>
               <Tooltip title="Each deal is pinned to the process-tree version it was checked against. A new tree release loads as configuration.">
                 <Tag icon={<PushpinOutlined />} color="default">Tree {deal.treeVersion}</Tag>
@@ -42,10 +44,13 @@ export default function DealLayout() {
               </Tooltip>
               <Tag>Target closing {deal.targetClosing}</Tag>
             </Space>
+            </TodayGate>
+            <TodayGate cap="lifecycle.processTree" chip="none">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 300 }} data-tour="readiness">
               <span className="metric-label" style={{ whiteSpace: 'nowrap' }}>Underwriting readiness</span>
               <Progress percent={m.readiness} strokeColor="#521B3A" size="small" style={{ margin: 0, flex: 1 }} />
             </div>
+            </TodayGate>
           </Space>
         </div>
       </Card>
@@ -59,7 +64,7 @@ export default function DealLayout() {
           description="Findings were produced against the earlier version. Re-run to see which findings change; both versions stay in the audit trail."
           action={
             <Space direction="vertical">
-              <PermButton cap="runScenarios" denied="Your role cannot re-run rule checks" type="primary" onClick={() => rerun(deal.id)} data-tour="rerun-btn">
+              <PermButton feature="rules.engine" cap="runScenarios" denied="Your role cannot re-run rule checks" type="primary" onClick={() => rerun(deal.id)} data-tour="rerun-btn">
                 Re-run against {published}
               </PermButton>
               <Button size="small" type="link" onClick={() => navigate('/admin/rules')}>What changed in the rule pack</Button>

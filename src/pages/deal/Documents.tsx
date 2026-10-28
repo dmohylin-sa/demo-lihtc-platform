@@ -1,5 +1,6 @@
 // Documents: package intake at deal scale (resumable upload, malware scan, OCR, classification) and the
-// versioned document store with supersession. Rows open the viewer at the first rendered page.
+// versioned document store with supersession. Rows open the viewer at the first rendered page. In the Today lens
+// each intake stage carries its status and large uploads fail, as they do on today's platform.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { App as AntdApp, Button, Card, Col, Empty, Input, Menu, Progress, Row, Select, Space, Table, Tag, Tooltip, Upload } from 'antd';
 import {
@@ -14,15 +15,18 @@ import { FOLDERS, KEY_DOCS, PACKAGE, fillerDocs } from '../../data/documents';
 import { useViewer } from '../../components/viewer';
 import { PageHeader } from '../../components/ui';
 import { PermButton } from '../../components/perm';
+import { CapChip, GatedButton, TodayGate, todayCol, useToday } from '../../components/today';
+import { CAPS, CAP_STATUS, type CapId } from '../../data/currentState';
 import { useIntakeSim } from './intakeSim';
 import type { Doc, DocFormat } from '../../data/types';
 
-const STAGES = [
-  { key: 'upload', label: 'Resumable upload', sub: '560 chunks of 5 MB · 2.8 GB', icon: <CloudUploadOutlined />, step: 1.7 },
-  { key: 'scan', label: 'Malware scan', sub: '412 files scanned on arrival', icon: <SafetyOutlined />, step: 4.2 },
-  { key: 'ocr', label: 'OCR and layout', sub: '1,132 scanned pages · page and passage anchors', icon: <ScanOutlined />, step: 2.6 },
-  { key: 'classify', label: 'Classification', sub: 'Phase 1 document types', icon: <TagsOutlined />, step: 3.4 },
-] as const;
+const STAGES: { key: string; label: string; sub: string; icon: JSX.Element; step: number; cap: CapId }[] = [
+  { key: 'upload', label: 'Resumable upload', sub: '560 chunks of 5 MB · 2.8 GB', icon: <CloudUploadOutlined />, step: 1.7, cap: 'intake.upload' },
+  { key: 'scan', label: 'Malware scan', sub: '412 files scanned on arrival', icon: <SafetyOutlined />, step: 4.2, cap: 'intake.malwareScan' },
+  { key: 'ocr', label: 'OCR and layout', sub: '1,132 scanned pages · page and passage anchors', icon: <ScanOutlined />, step: 2.6, cap: 'intake.ocr' },
+  { key: 'classify', label: 'Classification', sub: 'Phase 1 document types', icon: <TagsOutlined />, step: 3.4, cap: 'intake.classification' },
+];
+const UPLOAD_LIMIT_MB = 5; // today's platform: large single uploads fail (approximate)
 
 const STORE_STATUS = ['uploading', 'scanning', 'processing', 'processing'] as const;
 
@@ -67,6 +71,7 @@ export default function Documents() {
   const show = useViewer((s) => s.show);
   const token = useIntakeSim((s) => s.token);
   const { message } = AntdApp.useApp();
+  const today = useToday();
 
   const status = upload?.status ?? 'none';
   const [sim, setSim] = useState<Sim>(() => (status === 'done' ? COMPLETE : status === 'none' ? IDLE : { ...IDLE, running: true }));
@@ -174,7 +179,7 @@ export default function Documents() {
       }
       extra={
         <Space>
-          {runningNow && sim.stage === 0 ? <Button icon={sim.paused ? <PlayCircleOutlined /> : <PauseOutlined />} onClick={togglePause}>{sim.paused ? 'Resume' : 'Pause'}</Button> : null}
+          {runningNow && sim.stage === 0 ? <GatedButton feature="intake.resumable" icon={sim.paused ? <PlayCircleOutlined /> : <PauseOutlined />} onClick={togglePause}>{sim.paused ? 'Resume' : 'Pause'}</GatedButton> : null}
           {status === 'done' ? <Button icon={<ReloadOutlined />} onClick={replay} disabled={runningNow}>Replay intake</Button> : null}
         </Space>
       }
@@ -187,8 +192,17 @@ export default function Documents() {
           ['Scanned pages (OCR)', PACKAGE.scannedPages.toLocaleString('en-US')],
         ].map(([k, v]) => (
           <Col xs={12} md={6} key={k}>
-            <div className="metric-label">{k}</div>
-            <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 22 }}>{v}</div>
+            {today && k.includes('OCR') ? (
+              <TodayGate cap="intake.ocr" chip="none">
+                <div className="metric-label">{k}</div>
+                <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 22 }}>{v}</div>
+              </TodayGate>
+            ) : (
+              <>
+                <div className="metric-label">{k}</div>
+                <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 22 }}>{v}</div>
+              </>
+            )}
           </Col>
         ))}
       </Row>
@@ -199,18 +213,23 @@ export default function Documents() {
               const p = Math.round(sim.pct[i]);
               const active = runningNow && sim.stage === i;
               return (
-                <div key={st.key} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div key={st.key} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <TodayGate cap={st.cap} chip="none" style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0 }}>
                   <span className="metric-chip" style={{ width: 36, height: 36, fontSize: 16, background: p >= 100 ? '#F0F8F2' : active ? 'var(--plum-tint)' : 'var(--panel)', color: p >= 100 ? '#389E0D' : 'var(--plum)' }}>
                     {p >= 100 ? <CheckCircleFilled /> : active && !sim.paused ? <LoadingOutlined /> : st.icon}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <strong style={{ fontSize: 13.5 }}>{st.label}</strong>
-                      <span className="muted" style={{ fontSize: 12 }}>{st.sub}</span>
+                      <strong style={{ fontSize: 13.5 }}>{today && st.key === 'upload' ? 'Upload' : st.label}</strong>
+                      <span className="muted" style={{ fontSize: 12 }}>{today && st.key === 'upload' ? 'Single files; large files fail' : st.sub}</span>
                     </div>
                     <Progress percent={p} size="small" strokeColor={active && sim.paused ? '#D48806' : '#521B3A'} showInfo={false} style={{ margin: 0 }} />
                   </div>
                   <span className="mono" style={{ width: 38, textAlign: 'right' }}>{p}%</span>
+                </div>
+                </TodayGate>
+                {today ? <CapChip cap={st.cap} label={CAP_STATUS[CAPS[st.cap].status].short} style={{ width: 96, justifyContent: 'center' }} /> : null}
                 </div>
               );
             })}
@@ -223,7 +242,7 @@ export default function Documents() {
         </Col>
         <Col xs={24} lg={10}>
           <div className="panel" style={{ height: '100%', minHeight: 190 }}>
-            <div className="metric-label" style={{ marginBottom: 8 }}>Job feed · queue with retries</div>
+            <div className="metric-label" style={{ marginBottom: 8 }}>Job feed · queue with retries <CapChip cap="reliability.retries" label="Built" style={{ marginLeft: 4 }} /></div>
             {sim.feed.length ? (
               sim.feed.map((f, i) => (
                 <div key={`${f.at}-${i}`} className="fade-in" style={{ fontSize: 12, lineHeight: 1.5, color: i === 0 ? 'var(--ink)' : 'var(--secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -249,12 +268,20 @@ export default function Documents() {
   if (status !== 'done' && !runningNow) {
     return (
       <div className="fade-in">
-        <PageHeader eyebrow="Document intake" title="Upload the deal package" desc="Large packages of PDFs, scans, Excel, Word and email. Uploads resume after a dropped connection; every file is malware-scanned on arrival." />
+        <PageHeader eyebrow="Document intake" title="Upload the deal package" cap="intake.upload" desc="Large packages of PDFs, scans, Excel, Word and email. Uploads resume after a dropped connection; every file is malware-scanned on arrival." />
         <Card style={{ marginBottom: 16 }}>
           <Upload.Dragger
             multiple
             showUploadList={false}
-            beforeUpload={() => { startLive(); return false; }}
+            beforeUpload={(file) => {
+              // Today's platform: large uploads fail.
+              if (today && file.size > UPLOAD_LIMIT_MB * 1024 * 1024) {
+                message.error(`${file.name} (${(file.size / 1048576).toFixed(1)} MB) failed: large uploads fail on today's platform`);
+                return Upload.LIST_IGNORE;
+              }
+              startLive();
+              return false;
+            }}
             style={{ padding: '28px 0', background: 'var(--panel-soft)' }}
           >
             <p className="ant-upload-drag-icon"><InboxOutlined style={{ color: 'var(--plum)' }} /></p>
@@ -262,7 +289,7 @@ export default function Documents() {
             <p className="ant-upload-hint">Folders, PDFs, scans, spreadsheets, Word documents and email. Nothing leaves this browser in the demo.</p>
           </Upload.Dragger>
           <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <PermButton cap="upload" denied="Your role cannot upload documents" type="primary" size="large" icon={<CloudUploadOutlined />} onClick={startLive}>
+            <PermButton feature="intake.resumable" cap="upload" denied="Your role cannot upload documents" type="primary" size="large" icon={<CloudUploadOutlined />} onClick={startLive}>
               Use the sample package ({PACKAGE.files} files · {PACKAGE.sizeGb} GB)
             </PermButton>
           </div>
@@ -277,6 +304,7 @@ export default function Documents() {
       <PageHeader
         eyebrow="Document intake"
         title="Documents"
+        cap="intake.upload"
         desc="A versioned document store: nothing is overwritten. A new version supersedes the old one and the findings that depended on it are re-run."
       />
       {intakePanel}
@@ -354,12 +382,12 @@ export default function Documents() {
                   },
                   { title: 'Type', dataIndex: 'docType', width: 190, render: (v) => <span style={{ fontSize: 13 }}>{v}</span> },
                   {
-                    title: 'Confidence', dataIndex: 'confidence', width: 110,
+                    ...todayCol('Confidence', 'extraction.confidence', today), dataIndex: 'confidence', width: 110,
                     render: (v: number) => <Tooltip title="Classification confidence"><span className="mono" style={{ color: v < 0.9 ? '#D48806' : 'var(--ink)' }}>{Math.round(v * 100)}%</span></Tooltip>,
                   },
                   { title: 'Pages', dataIndex: 'pages', width: 72, align: 'right' },
-                  { title: 'Scanned', dataIndex: 'scannedPct', width: 92, render: (v: number) => (v ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>OCR {v}%</Tag> : <span className="muted">-</span>) },
-                  { title: 'Ver.', dataIndex: 'version', width: 60, render: (v: number) => <span className="mono">v{v}</span> },
+                  { ...todayCol('Scanned', 'intake.ocr', today), dataIndex: 'scannedPct', width: 92, render: (v: number) => (v ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>OCR {v}%</Tag> : <span className="muted">-</span>) },
+                  { ...todayCol('Ver.', 'intake.docStore', today), dataIndex: 'version', width: 60, render: (v: number) => <span className="mono">v{v}</span> },
                   { title: 'Size', dataIndex: 'sizeMb', width: 84, align: 'right', render: (v: number) => <span className="mono">{v} MB</span> },
                 ]}
               />
